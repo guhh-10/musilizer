@@ -4,6 +4,15 @@ project(musilizer)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+FetchContent_Declare(
+    tag
+    GIT_REPOSITORY  https://github.com/taglib/taglib.git
+    GIT_TAG         v2.3
+)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(tag)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
@@ -11,6 +20,23 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+
+    # TagLib core
+    ${tag_BINARY_DIR}/taglib
+    ${tag_SOURCE_DIR}/taglib
+    ${tag_SOURCE_DIR}/taglib/toolkit
+
+    # ID3v2 (MP3 tags)
+    ${tag_SOURCE_DIR}/taglib/mpeg
+    ${tag_SOURCE_DIR}/taglib/mpeg/id3v2
+    ${tag_SOURCE_DIR}/taglib/mpeg/id3v2/frames
+
+    # ID3v1 (legacy, might be needed alongside v2)
+    ${tag_SOURCE_DIR}/taglib/mpeg/id3v1
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    tag
 )
 
 if(MSVC)
