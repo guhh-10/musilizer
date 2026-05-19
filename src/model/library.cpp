@@ -2,6 +2,6 @@
 
 #include "model/library.hpp"
 
-void library::addTrack(track track){
-    tracks.push_back(std::move(track));
+void library::addTrack(track t){
+    tracks.push_back(std::move(t));
 }

@@ -9,5 +9,5 @@ class library{
     public:
         const std::vector<track>& getTracks() const { return tracks; }
     
-        void addTrack(track track);
+        void addTrack(track t);
 };
