@@ -16,6 +16,7 @@ FetchContent_MakeAvailable(tag)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
+    src/model/musicDirectory.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
