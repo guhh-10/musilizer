@@ -49,3 +49,11 @@ void musicDirectory::loadMetadata(fs::path musicpath, library& lib){
 
     lib.addTrack(track(std::move(artists), std::move(musicpath), std::move(title), duration));
 }
+
+void musicDirectory::initialize(library& lib){
+    for( const auto& entry : fs::directory_iterator(MUSIC_FOLDER)){
+        if(entry.path().extension() == ".mp3"){
+            loadMetadata(entry.path(), lib);
+        }
+    }
+}
