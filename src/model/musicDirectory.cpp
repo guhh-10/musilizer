@@ -3,6 +3,7 @@
 #include <id3v2frame.h>
 #include <sstream>
 #include <string>
+#include <iostream>
 
 #include "model/musicDirectory.hpp"
 #include "model/track.hpp"
@@ -22,21 +23,26 @@ void musicDirectory::loadMetadata(fs::path musicpath, library& lib){
     if (!tit2.isEmpty())
         title = tit2.front()->toString().toCString(true);
 
-    // artists — split TPE2 on "; " into vector
+    // artists — read from TXXX [ARTISTS], null-separated; fallback to TPE1
     std::vector<std::string> artists;
-    auto tpe2 = tag->frameListMap()["TPE2"];
-    if (!tpe2.isEmpty()) {
-        std::string raw = tpe2.front()->toString().toCString(true);
-        std::stringstream ss(raw);
-        std::string token;
-        while (std::getline(ss, token, ';')) {
-            // trim leading space
-            if (!token.empty() && token.front() == ' ')
-                token.erase(0, 1);
-            artists.push_back(token);
+    auto txxx = tag->frameListMap()["TXXX"];
+    for (const auto& frame : txxx) {
+        std::string raw = frame->toString().toCString(true);
+        if (raw.rfind("[ARTISTS]", 0) == 0) {
+            // value is after "[ARTISTS] "
+            std::string value = raw.substr(10);
+            std::stringstream ss(value);
+            std::string token;
+            while (std::getline(ss, token, '\0'))
+                artists.push_back(token);
+            if (artists.empty())
+                artists.push_back(value);
+            break;
         }
-    } else {
-        // fallback to TPE1 as single artist
+    }
+
+    // fallback to TPE1
+    if (artists.empty()) {
         auto tpe1 = tag->frameListMap()["TPE1"];
         if (!tpe1.isEmpty())
             artists.push_back(tpe1.front()->toString().toCString(true));
