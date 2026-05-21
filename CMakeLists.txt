@@ -13,6 +13,13 @@ FetchContent_Declare(
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(tag)
 
+FetchContent_Declare(
+    miniaudio
+    GIT_REPOSITORY  https://github.com/mackron/miniaudio.git
+    GIT_TAG         0.11.25
+)
+FetchContent_MakeAvailable(miniaudio)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
@@ -21,6 +28,9 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+
+    # Miniaudio include directory
+    ${miniaudio_SOURCE_DIR}
 
     # TagLib core
     ${tag_BINARY_DIR}/taglib
