@@ -31,7 +31,8 @@ void audio::load(const std::filesystem::path& musicpath){
     if(decoderInit)
         ma_decoder_uninit(&decoder);
 
-    ma_decoder_init_file(musicpath.string().c_str(), NULL, &decoder);
+    ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
+    ma_decoder_init_file(musicpath.string().c_str(), &decoderConfig, &decoder);
     decoderInit = true;
     ma_device_start(&device);
 }
