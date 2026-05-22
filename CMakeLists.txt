@@ -24,6 +24,8 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
     src/model/musicDirectory.cpp
+    src/model/audio.cpp
+    src/model/audio_impl.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
