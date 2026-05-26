@@ -27,6 +27,7 @@ add_executable(${PROJECT_NAME}
     src/model/audio.cpp
     src/model/audio_impl.cpp
     src/model/queue.cpp
+    src/model/playlist.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 

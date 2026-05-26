@@ -7,6 +7,8 @@
 #include "model/track.hpp"
 #include "model/audio.hpp"
 #include "model/queue.hpp"
+#include "model/playlist.hpp"
 
 int main() {
+
 }
