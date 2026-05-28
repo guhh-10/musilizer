@@ -8,6 +8,7 @@
 #include "model/musicDirectory.hpp"
 #include "model/track.hpp"
 #include "model/library.hpp"
+#include "config.hpp"
 
 void musicDirectory::loadMetadata(fs::path musicpath, library& lib){
     TagLib::MPEG::File file(musicpath.string().c_str());
@@ -57,7 +58,7 @@ void musicDirectory::loadMetadata(fs::path musicpath, library& lib){
 }
 
 void musicDirectory::initialize(library& lib){
-    for( const auto& entry : fs::directory_iterator(MUSIC_FOLDER)){
+    for( const auto& entry : fs::directory_iterator(config::MUSIC_DIR)){
         if(entry.path().extension() == ".mp3"){
             loadMetadata(entry.path(), lib);
         }
