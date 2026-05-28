@@ -29,7 +29,17 @@ void audio::dataCallback(ma_device* device, void* output, const void* input, ma_
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
     }
-    ma_decoder_read_pcm_frames(&self->decoder, output, frameCount, nullptr);
+    
+    ma_uint64 frameRead;
+    ma_decoder_read_pcm_frames(&self->decoder, output, frameCount, &frameRead);
+
+    if(frameRead < frameCount){
+        size_t bytesRead    = frameRead * 2 * sizeof(float);
+        size_t bytesTotal   = frameCount * 2 * sizeof(float);
+        memset((char*)output + bytesRead, 0, bytesTotal - bytesRead);
+        self->trackEnded = true;
+    }
+
     (void)input;
 }
 
@@ -53,6 +63,14 @@ void audio::fadeIn(){
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     ma_device_set_master_volume(&device, target); // make sure it lands exactly at 1.0
+}
+
+bool audio::hasTrackEnded() const{ 
+    return trackEnded;
+}
+
+void audio::resetTrackEnded(){
+    trackEnded = false;
 }
 
 void audio::load(const std::filesystem::path& musicpath){
