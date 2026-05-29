@@ -30,4 +30,5 @@ class audio{
         // TODO:
         // void getPosition() const;
         void setVolume(float volume);
+        const float getVolume() const;
 };

@@ -110,3 +110,6 @@ void audio::setVolume(float volume){
     userVolume = volume;
     ma_device_set_master_volume(&device, userVolume);
 }
+const float audio::getVolume() const{
+    return userVolume;
+}

@@ -12,25 +12,36 @@ void queue::load(const std::vector<const track*>& tracks){
 }
 
 const std::string& queue::next(){
-    if(hasNext())
-        trackQueue.pop_front();
+    if(!hasNext())
+        return trackQueue.front();
+
+    if(repeat){
+        trackQueue.push_back(trackQueue.front());
+        if(shuffle) originalOrder.push_back(trackQueue.front());
+    }
+
+    trackQueue.pop_front();
     return trackQueue.front();
 }
 
 void queue::setShuffle(bool enabled){
     shuffle = enabled;
-    if (shuffle) {
+    if (shuffle){
         originalOrder.assign(trackQueue.begin(), trackQueue.end());
         std::shuffle(trackQueue.begin() + 1, trackQueue.end(), 
                      std::mt19937{std::random_device{}()});
-    } else {
+    } else{
         std::string current = trackQueue.front();
         trackQueue.assign(originalOrder.begin(), originalOrder.end());
         auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
-        if (it != trackQueue.end()) {
+        if (it != trackQueue.end()){
             std::rotate(trackQueue.begin(), it, it + 1);
         }
     }
+}
+
+void queue::setRepeat(bool enabled){
+    repeat = enabled;
 }
 
 const std::string& queue::current() const{
@@ -54,4 +65,8 @@ void queue::addTrackToBack(const track& t){
 
 bool queue::isShuffle() const{
     return shuffle; 
+}
+
+bool queue::isRepeat() const{
+    return repeat;
 }

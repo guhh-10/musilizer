@@ -10,15 +10,18 @@ class queue{
     private:
         std::deque<std::string> trackQueue;
         std::vector<std::string> originalOrder;
-        bool shuffle = false;
+        bool shuffle    = false;
+        bool repeat     = false;
 
     public:
         void load(const std::vector<const track*>& tracks);
         const std::string& next();
         void setShuffle(bool enabled);
+        void setRepeat(bool enabled);
         const std::string& current() const;
         bool hasNext() const;
         void addTrackToFront(const track& t);
         void addTrackToBack(const track& t);
         bool isShuffle() const;
+        bool isRepeat() const;
 };
