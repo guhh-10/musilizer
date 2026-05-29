@@ -94,7 +94,7 @@ void audio::play(){
 void audio::pause(){
     fadeOut();
     ma_device_stop(&device);
-    ma_device_set_master_volume(&device, 1.0f);
+    ma_device_set_master_volume(&device, userVolume);
 }
 
 void audio::seek(float second){

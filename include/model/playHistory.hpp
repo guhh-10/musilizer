@@ -1,20 +1,25 @@
 #pragma once
 #include <vector>
+#include <string>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "track.hpp"
 
+class library;
+
 class playHistory {
     private:
-        std::vector<track> history;
+        std::vector<std::string> history;
         int cursor = -1;
 
     public:
         void push(const track& t);
-        const track& back();
-        const track& forward();
-        const track& current() const;
+        const std::string& back();
+        const std::string& forward();
+        const std::string& current() const;
         bool canGoBack() const;
         bool canGoForward() const;
-        const std::vector<track>& getHistory() const;
+        const std::vector<std::string>& getHistory() const;
         void clear();
 };

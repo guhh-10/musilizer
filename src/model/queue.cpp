@@ -2,12 +2,16 @@
 
 #include "model/queue.hpp"
 
-void queue::load(const std::vector<track>& tracks){
-    trackQueue.assign(tracks.begin(), tracks.end());
-    originalOrder.assign(tracks.begin(), tracks.end());
+void queue::load(const std::vector<const track*>& tracks){
+    trackQueue.clear();
+    originalOrder.clear();
+    for(const track* t : tracks){
+        trackQueue.push_back(t->getMusicPath().string());
+        originalOrder.push_back(t->getMusicPath().string());
+    }
 }
 
-const track& queue::next(){
+const std::string& queue::next(){
     if(hasNext())
         trackQueue.pop_front();
     return trackQueue.front();
@@ -20,17 +24,16 @@ void queue::setShuffle(bool enabled){
         std::shuffle(trackQueue.begin() + 1, trackQueue.end(), 
                      std::mt19937{std::random_device{}()});
     } else {
-        track current = trackQueue.front();
+        std::string current = trackQueue.front();
         trackQueue.assign(originalOrder.begin(), originalOrder.end());
-        auto it = std::find_if(trackQueue.begin(), trackQueue.end(),
-            [&current](const track& t){ return t.getTitle() == current.getTitle(); });
+        auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
         if (it != trackQueue.end()) {
             std::rotate(trackQueue.begin(), it, it + 1);
         }
     }
 }
 
-const track& queue::current() const{
+const std::string& queue::current() const{
     return trackQueue.front();
 }
 
@@ -40,13 +43,13 @@ bool queue::hasNext() const {
 
 void queue::addTrackToFront(const track& t){
     if (trackQueue.empty())
-        trackQueue.push_front(t);
+        trackQueue.push_front(t.getMusicPath().string());
     else
-        trackQueue.insert(trackQueue.begin() + 1, t);
+        trackQueue.insert(trackQueue.begin() + 1, t.getMusicPath().string());
 }
 
 void queue::addTrackToBack(const track& t){
-    trackQueue.push_back(t);
+    trackQueue.push_back(t.getMusicPath().string());
 }
 
 bool queue::isShuffle() const{

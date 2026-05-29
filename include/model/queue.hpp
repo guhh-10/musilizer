@@ -2,20 +2,21 @@
 #include <algorithm>
 #include <random>
 #include <deque>
+#include <vector>
 
 #include "track.hpp"
 
 class queue{
     private:
-        std::deque<track> trackQueue;
-        std::vector<track> originalOrder;
+        std::deque<std::string> trackQueue;
+        std::vector<std::string> originalOrder;
         bool shuffle = false;
 
     public:
-        void load(const std::vector<track>& tracks);
-        const track& next();
+        void load(const std::vector<const track*>& tracks);
+        const std::string& next();
         void setShuffle(bool enabled);
-        const track& current() const;
+        const std::string& current() const;
         bool hasNext() const;
         void addTrackToFront(const track& t);
         void addTrackToBack(const track& t);

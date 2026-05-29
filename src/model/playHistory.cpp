@@ -4,24 +4,25 @@
 void playHistory::push(const track& t){
     if (cursor < static_cast<int>(history.size()) - 1)
         history.erase(history.begin() + cursor + 1, history.end());
-
-    history.push_back(t);
+    
+    history.push_back(t.getMusicPath().string());
     cursor = static_cast<int>(history.size()) - 1;
 }
 
-const track& playHistory::back(){
+
+const std::string& playHistory::back(){
     if (canGoBack())
         cursor--;
     return history[cursor];
 }
 
-const track& playHistory::forward(){
+const std::string& playHistory::forward(){
     if (canGoForward())
         cursor++;
     return history[cursor];
 }
 
-const track& playHistory::current() const{
+const std::string& playHistory::current() const{
     return history[cursor];
 }
 
@@ -33,7 +34,7 @@ bool playHistory::canGoForward() const{
     return cursor < static_cast<int>(history.size()) - 1;
 }
 
-const std::vector<track>& playHistory::getHistory() const{
+const std::vector<std::string>& playHistory::getHistory() const{
     return history;
 }
 
