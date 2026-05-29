@@ -10,4 +10,6 @@ namespace config{
     inline const fs::path PLAYLIST = DATA_DIR / "playlist.json";
     inline const fs::path SETTING = DATA_DIR / "setting.json";
     inline const fs::path HISTORY = DATA_DIR / "history.json";
+
+    inline constexpr int MAX_HISTORY = 50;
 }

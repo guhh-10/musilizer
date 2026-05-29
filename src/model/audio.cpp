@@ -74,21 +74,22 @@ void audio::resetTrackEnded(){
 }
 
 void audio::load(const std::filesystem::path& musicpath){
-    if(decoderInit)
+    if(decoderInit){
         fadeOut();
-    ma_device_stop(&device);
-    if(decoderInit)
+        ma_device_stop(&device);
         ma_decoder_uninit(&decoder);
+    }
 
     ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
     ma_decoder_init_file(musicpath.string().c_str(), &decoderConfig, &decoder);
     decoderInit = true;
-    ma_device_set_master_volume(&device, userVolume);
-    ma_device_start(&device);
+    play();
 }
 
 void audio::play(){
+    ma_device_set_master_volume(&device, 0.0f);
     ma_device_start(&device);
+    fadeIn();
 }
 
 void audio::pause(){

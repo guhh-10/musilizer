@@ -26,15 +26,15 @@ const std::string& queue::next(){
 
 void queue::setShuffle(bool enabled){
     shuffle = enabled;
-    if (shuffle){
+    if(shuffle){
         originalOrder.assign(trackQueue.begin(), trackQueue.end());
         std::shuffle(trackQueue.begin() + 1, trackQueue.end(), 
                      std::mt19937{std::random_device{}()});
-    } else{
+    }else{
         std::string current = trackQueue.front();
         trackQueue.assign(originalOrder.begin(), originalOrder.end());
         auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
-        if (it != trackQueue.end()){
+        if(it != trackQueue.end()){
             std::rotate(trackQueue.begin(), it, it + 1);
         }
     }

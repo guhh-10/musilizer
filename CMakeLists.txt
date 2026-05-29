@@ -20,6 +20,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(miniaudio)
 
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY  https://github.com/nlohmann/json.git
+    GIT_TAG         v3.12.0
+)
+FetchContent_MakeAvailable(json)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
@@ -29,6 +36,7 @@ add_executable(${PROJECT_NAME}
     src/model/queue.cpp
     src/model/playlist.cpp
     src/model/playHistory.cpp
+    src/model/persistence.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -53,6 +61,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     tag
+    nlohmann_json::nlohmann_json
 )
 
 if(MSVC)

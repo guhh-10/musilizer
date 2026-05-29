@@ -1,11 +1,16 @@
 // playHistory.cpp
 #include "model/playHistory.hpp"
+#include "config.hpp"
 
 void playHistory::push(const track& t){
     if (cursor < static_cast<int>(history.size()) - 1)
         history.erase(history.begin() + cursor + 1, history.end());
     
     history.push_back(t.getMusicPath().string());
+
+    if(static_cast<int>(history.size()) > config::MAX_HISTORY)
+        history.erase(history.begin());
+
     cursor = static_cast<int>(history.size()) - 1;
 }
 
