@@ -23,13 +23,13 @@ audio::audio(){
 
 audio::~audio(){
     ma_device_uninit(&device);
-    if(decoderInit)
+    if(decoderInit.load())
         ma_decoder_uninit(&decoder);
 }
 
 void audio::dataCallback(ma_device* device, void* output, const void* input, ma_uint32 frameCount){
     audio* self = static_cast<audio*>(device->pUserData);
-    if (!self->decoderInit || self->seeking) {
+    if (!self->decoderInit.load() || self->seeking.load()) {
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
     }
@@ -47,7 +47,7 @@ void audio::dataCallback(ma_device* device, void* output, const void* input, ma_
         size_t bytesRead    = frameRead * 2 * sizeof(float);
         size_t bytesTotal   = frameCount * 2 * sizeof(float);
         memset((char*)output + bytesRead, 0, bytesTotal - bytesRead);
-        self->trackEnded = true;
+        self->trackEnded.store(true);
     }
 
     (void)input;
@@ -76,22 +76,22 @@ void audio::fadeIn(){
 }
 
 bool audio::hasTrackEnded() const{ 
-    return trackEnded;
+    return trackEnded.load();
 }
 
 void audio::resetTrackEnded(){
-    trackEnded = false;
+    trackEnded.store(false);
 }
 
 void audio::load(const std::filesystem::path& musicpath){
-    if(decoderInit){
+    if(decoderInit.load()){
         fadeOut();
         ma_device_stop(&device);
     }
 
     {
         std::lock_guard<std::mutex> lock(decoderMutex);
-        if(decoderInit)
+        if(decoderInit.load())
             ma_decoder_uninit(&decoder);
 
         ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
@@ -102,7 +102,7 @@ void audio::load(const std::filesystem::path& musicpath){
                 std::string("audio: failed to open '") +
                 musicpath.string() + "': " +
                 ma_result_description(result));
-        decoderInit = true;
+        decoderInit.store(true);
     }
 
     play();
@@ -125,8 +125,8 @@ void audio::pause(){
 }
 
 void audio::seek(float second){
-    if (!decoderInit) return;
-    seeking = true;
+    if (!decoderInit.load()) return;
+    seeking.store(true);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     
     {
@@ -137,7 +137,7 @@ void audio::seek(float second){
             std::cerr << "[audio::seek] failed: " << ma_result_description(result) << "\n";
     }
 
-    seeking = false;
+    seeking.store(false);
 }
 
 void audio::setVolume(float volume){
