@@ -1,5 +1,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <exception>
+#include <iostream>
 
 #include "model/persistence.hpp"
 #include "model/library.hpp"
@@ -41,11 +43,19 @@ void persistence::saveSettings(float volume, bool shuffle, bool repeat){
 }
 
 void persistence::loadSettings(float& volume, bool& shuffle, bool& repeat){
-    std::ifstream f(config::SETTING);
-    nlohmann::json j = nlohmann::json::parse(f);
-    volume  = j["volume"];
-    shuffle = j["shuffle"];
-    repeat  = j["repeat"];
+    try {
+        std::ifstream f(config::SETTING);
+        if(!f.is_open()) throw std::runtime_error("cannot open settings file");
+        nlohmann::json j = nlohmann::json::parse(f);
+        volume  = j.at("volume");
+        shuffle = j.at("shuffle");
+        repeat  = j.at("repeat");
+    } catch(const std::exception& e){
+        std::cerr << "[persistence::loadSettings] failed: " << e.what() << " — using defaults\n";
+        volume  = 1.0f;
+        shuffle = false;
+        repeat  = false;
+    }
 }
 
 void persistence::savePlaylists(const std::vector<playlist>& playlists){
@@ -65,18 +75,24 @@ void persistence::savePlaylists(const std::vector<playlist>& playlists){
 }
 
 std::vector<playlist> persistence::loadPlaylists(const library& lib){
-    std::ifstream f(config::PLAYLIST);
-    nlohmann::json j = nlohmann::json::parse(f);
-    std::vector<playlist> result;
-    for(const auto& entry : j["playlists"]){
-        playlist p(entry["name"]);
-        for(const std::string& path : entry["tracks"]){
-            const track* t = lib.findByPath(fs::path(path));  // string→path here
-            if(t) p.addTrack(*t);
+    try {
+        std::ifstream f(config::PLAYLIST);
+        if(!f.is_open()) throw std::runtime_error("cannot open playlists file");
+        nlohmann::json j = nlohmann::json::parse(f);
+        std::vector<playlist> result;
+        for(const auto& entry : j.at("playlists")){
+            playlist p(entry.at("name"));
+            for(const std::string& path : entry.at("tracks")){
+                const track* t = lib.findByPath(fs::path(path));
+                if(t) p.addTrack(*t);
+            }
+            result.push_back(p);
         }
-        result.push_back(p);
+        return result;
+    } catch(const std::exception& e){
+        std::cerr << "[persistence::loadPlaylists] failed: " << e.what() << " — returning empty\n";
+        return {};
     }
-    return result;
 }
 
 void persistence::saveHistory(const playHistory& history){
@@ -89,10 +105,15 @@ void persistence::saveHistory(const playHistory& history){
 }
 
 void persistence::loadHistory(playHistory& history, const library& lib){
-    std::ifstream f(config::HISTORY);
-    nlohmann::json j = nlohmann::json::parse(f);
-    for(const std::string& path : j["history"]){
-        const track* t = lib.findByPath(path);
-        if(t) history.push(*t);
+    try {
+        std::ifstream f(config::HISTORY);
+        if(!f.is_open()) throw std::runtime_error("cannot open history file");
+        nlohmann::json j = nlohmann::json::parse(f);
+        for(const std::string& path : j.at("history")){
+            const track* t = lib.findByPath(fs::path(path));
+            if(t) history.push(*t);
+        }
+    } catch(const std::exception& e){
+        std::cerr << "[persistence::loadHistory] failed: " << e.what() << " — starting with empty history\n";
     }
 }

@@ -10,7 +10,7 @@ class library;
 
 class playHistory {
     private:
-        std::vector<fs::path> history;;
+        std::vector<fs::path> history;
         int cursor = -1;
 
     public:
