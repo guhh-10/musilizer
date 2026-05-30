@@ -2,15 +2,15 @@
 #include <nlohmann/json.hpp>
 
 #include "model/playlist.hpp"
-#include "model/playHistory.hpp"
+#include "model/play_history.hpp"
 
-class persistence{
+class Persistence{
     public:
         static void init();
         static void saveSettings(float volume, bool shuffle, bool repeat);
         static void loadSettings(float& volume, bool& shuffle, bool& repeat);
-        static void savePlaylists(const std::vector<playlist>& playlists);
-        static std::vector<playlist> loadPlaylists(const library& lib);
-        static void saveHistory(const playHistory& history);
-        static void loadHistory(playHistory& history, const library& lib);
+        static void savePlaylists(const std::vector<Playlist>& playlists);
+        static std::vector<Playlist> loadPlaylists(const Library& lib);
+        static void saveHistory(const PlayHistory& history);
+        static void loadHistory(PlayHistory& history, const Library& lib);
 };

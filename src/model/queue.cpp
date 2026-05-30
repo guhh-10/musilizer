@@ -2,89 +2,89 @@
 
 #include "model/queue.hpp"
 
-void queue::load(const std::vector<const track*>& tracks){
-    trackQueue.clear();
-    originalOrder.clear();
-    for(const track* t : tracks){
-        trackQueue.push_back(t->getMusicPath());
-        originalOrder.push_back(t->getMusicPath());
+void Queue::load(const std::vector<const Track*>& tracks){
+    track_queue.clear();
+    original_order.clear();
+    for(const Track* t : tracks){
+        track_queue.push_back(t->getMusicPath());
+        original_order.push_back(t->getMusicPath());
     }
 }
 
-std::optional<fs::path> queue::next(){
-    if(trackQueue.empty())
+std::optional<fs::path> Queue::next(){
+    if(track_queue.empty())
         return std::nullopt;
 
     if(!hasNext()){
         if(repeat){
-            trackQueue.assign(originalOrder.begin(), originalOrder.end());
+            track_queue.assign(original_order.begin(), original_order.end());
             if(shuffle)
-                std::shuffle(trackQueue.begin(), trackQueue.end(),
+                std::shuffle(track_queue.begin(), track_queue.end(),
                              std::mt19937{std::random_device{}()});
-            return trackQueue.front();
+            return track_queue.front();
         }
         return std::nullopt;
     }
 
-    trackQueue.pop_front();
-    return trackQueue.front();
+    track_queue.pop_front();
+    return track_queue.front();
 }
 
-void queue::setShuffle(bool enabled){
-    if(trackQueue.empty()) {
+void Queue::setShuffle(bool enabled){
+    if(track_queue.empty()) {
         shuffle = enabled;
         return;
     }
 
     shuffle = enabled;
     if(shuffle){
-        originalOrder.assign(trackQueue.begin(), trackQueue.end());
-        std::shuffle(trackQueue.begin() + 1, trackQueue.end(),
+        original_order.assign(track_queue.begin(), track_queue.end());
+        std::shuffle(track_queue.begin() + 1, track_queue.end(),
                      std::mt19937{std::random_device{}()});
     } else {
-        fs::path current = trackQueue.front();
-        trackQueue.assign(originalOrder.begin(), originalOrder.end());
-        auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
-        if(it != trackQueue.end())
-            std::rotate(trackQueue.begin(), it, trackQueue.end());
+        fs::path current = track_queue.front();
+        track_queue.assign(original_order.begin(), original_order.end());
+        auto it = std::find(track_queue.begin(), track_queue.end(), current);
+        if(it != track_queue.end())
+            std::rotate(track_queue.begin(), it, track_queue.end());
     }
 }
 
-void queue::setRepeat(bool enabled){
+void Queue::setRepeat(bool enabled){
     repeat = enabled;
 }
 
-std::optional<fs::path> queue::current() const{
-    if(trackQueue.empty())
+std::optional<fs::path> Queue::current() const{
+    if(track_queue.empty())
         return std::nullopt;
-    return trackQueue.front();
+    return track_queue.front();
 }
 
-bool queue::hasNext() const {
-    return trackQueue.size() > 1;
+bool Queue::hasNext() const {
+    return track_queue.size() > 1;
 }
 
-void queue::addTrackToFront(const track& t){
+void Queue::addTrackToFront(const Track& t){
     fs::path path = t.getMusicPath();
-    if(trackQueue.empty()){
-        trackQueue.push_front(path);
-        originalOrder.push_front(path);
+    if(track_queue.empty()){
+        track_queue.push_front(path);
+        original_order.push_front(path);
     } else {
-        trackQueue.insert(trackQueue.begin() + 1, path);
-        originalOrder.insert(originalOrder.begin() + 1, path);
+        track_queue.insert(track_queue.begin() + 1, path);
+        original_order.insert(original_order.begin() + 1, path);
     }
 }
 
-void queue::addTrackToBack(const track& t){
+void Queue::addTrackToBack(const Track& t){
     fs::path path = t.getMusicPath();
-    trackQueue.push_back(path);
-    originalOrder.push_back(path);
+    track_queue.push_back(path);
+    original_order.push_back(path);
 }
 
-bool queue::isShuffle() const{
+bool Queue::isShuffle() const{
     return shuffle; 
 }
 
-bool queue::isRepeat() const{
+bool Queue::isRepeat() const{
     return repeat;
 }

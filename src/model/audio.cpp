@@ -6,40 +6,40 @@
 
 #include "model/audio.hpp"
 
-audio::audio(){
+Audio::Audio(){
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format  = ma_format_f32;
     config.playback.channels = 2;
     config.sampleRate       = 48000;
-    config.dataCallback     = audio::dataCallback;
+    config.dataCallback     = Audio::dataCallback;
     config.pUserData        = this;
 
     ma_result result = ma_device_init(NULL, &config, &device);
     if(result != MA_SUCCESS)
         throw std::runtime_error(
-            std::string("audio: failed to initialise device: ") +
+            std::string("Audio: failed to initialise device: ") +
             ma_result_description(result));
 }
 
-audio::~audio(){
+Audio::~Audio(){
     ma_device_stop(&device);
     {
-        std::lock_guard<std::mutex> lock(decoderMutex);
-        if(decoderInit.load())
+        std::lock_guard<std::mutex> lock(decoder_mutex);
+        if(decoder_initialized.load())
             ma_decoder_uninit(&decoder);
-        decoderInit.store(false);
+        decoder_initialized.store(false);
     }
     ma_device_uninit(&device);
 }
 
-void audio::dataCallback(ma_device* device, void* output, const void* input, ma_uint32 frameCount){
-    audio* self = static_cast<audio*>(device->pUserData);
-    if (!self->decoderInit.load() || self->seeking.load()) {
+void Audio::dataCallback(ma_device* device, void* output, const void* input, ma_uint32 frameCount){
+    Audio* self = static_cast<Audio*>(device->pUserData);
+    if (!self->decoder_initialized.load() || self->seeking.load()) {
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
     }
 
-    std::unique_lock<std::mutex> lock(self->decoderMutex, std::try_to_lock);
+    std::unique_lock<std::mutex> lock(self->decoder_mutex, std::try_to_lock);
     if (!lock.owns_lock()) {
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
@@ -52,14 +52,14 @@ void audio::dataCallback(ma_device* device, void* output, const void* input, ma_
         size_t bytesRead    = frameRead * 2 * sizeof(float);
         size_t bytesTotal   = frameCount * 2 * sizeof(float);
         memset((char*)output + bytesRead, 0, bytesTotal - bytesRead);
-        self->trackEnded.store(true);
+        self->track_ended.store(true);
     }
 
     (void)input;
 }
 
-void audio::fadeOut(){
-    float vol = userVolume.load();
+void Audio::fadeOut(){
+    float vol = user_volume.load();
     float step = vol / 10.0f;
     float volume = vol;
     for (int i = 0; i < 10; i++) {
@@ -69,8 +69,8 @@ void audio::fadeOut(){
     }
 }
 
-void audio::fadeIn(){
-    float target = userVolume.load();
+void Audio::fadeIn(){
+    float target = user_volume.load();
     float step = target / 10.0f;
     float volume = 0.0f;
     for (int i = 0; i < 10; i++) {
@@ -81,75 +81,75 @@ void audio::fadeIn(){
     ma_device_set_master_volume(&device, target);
 }
 
-bool audio::hasTrackEnded() const{ 
-    return trackEnded.load();
+bool Audio::hasTrackEnded() const{ 
+    return track_ended.load();
 }
 
-void audio::resetTrackEnded(){
-    trackEnded.store(false);
+void Audio::resetTrackEnded(){
+    track_ended.store(false);
 }
 
-void audio::load(const std::filesystem::path& musicpath){
-    if(decoderInit.load()){
+void Audio::load(const fs::path& music_path){
+    if(decoder_initialized.load()){
         fadeOut();
         ma_device_stop(&device);
     }
 
     {
-        std::lock_guard<std::mutex> lock(decoderMutex);
-        if(decoderInit.load())
+        std::lock_guard<std::mutex> lock(decoder_mutex);
+        if(decoder_initialized.load())
             ma_decoder_uninit(&decoder);
 
         ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
         ma_result result = ma_decoder_init_file(
-            musicpath.string().c_str(), &decoderConfig, &decoder);
+            music_path.string().c_str(), &decoderConfig, &decoder);
         if(result != MA_SUCCESS)
             throw std::runtime_error(
-                std::string("audio: failed to open '") +
-                musicpath.string() + "': " +
+                std::string("Audio: failed to open '") +
+                music_path.string() + "': " +
                 ma_result_description(result));
-        decoderInit.store(true);
+        decoder_initialized.store(true);
     }
 
     play();
 }
 
-void audio::play(){
+void Audio::play(){
     ma_device_set_master_volume(&device, 0.0f);
     ma_result result = ma_device_start(&device);
     if(result != MA_SUCCESS)
         throw std::runtime_error(
-            std::string("audio: failed to start device: ") +
+            std::string("Audio: failed to start device: ") +
             ma_result_description(result));
     fadeIn();
 }
 
-void audio::pause(){
+void Audio::pause(){
     fadeOut();
     ma_device_stop(&device);
-    ma_device_set_master_volume(&device, userVolume.load());
+    ma_device_set_master_volume(&device, user_volume.load());
 }
 
-void audio::seek(float second){
-    if (!decoderInit.load()) return;
+void Audio::seek(float second){
+    if (!decoder_initialized.load()) return;
     seeking.store(true);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     
     {
-        std::lock_guard<std::mutex> lock(decoderMutex);
+        std::lock_guard<std::mutex> lock(decoder_mutex);
         ma_uint64 frame = (ma_uint64)(second * decoder.outputSampleRate);
         ma_result result = ma_decoder_seek_to_pcm_frame(&decoder, frame);
         if(result != MA_SUCCESS)
-            std::cerr << "[audio::seek] failed: " << ma_result_description(result) << "\n";
+            std::cerr << "[Audio::seek] failed: " << ma_result_description(result) << "\n";
     }
 
     seeking.store(false);
 }
 
-void audio::setVolume(float volume){
-    userVolume.store(volume);
+void Audio::setVolume(float volume){
+    user_volume.store(volume);
     ma_device_set_master_volume(&device, volume);
 }
-float audio::getVolume() const{
-    return userVolume.load();
+float Audio::getVolume() const{
+    return user_volume.load();
 }

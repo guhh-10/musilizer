@@ -1,20 +1,28 @@
 #pragma once
-#include <filesystem>
+#include <string>
 #include <vector>
 
-class track{
+#include "config.hpp"
+
+class Track{
     private:
         std::vector<std::string> artists;
-        std::filesystem::path musicpath;
+        fs::path music_path;
         std::string title;
-        int         totalDuration = 0;
+        int total_duration = 0;
     
     public:
-        track(std::vector<std::string> a, std::filesystem::path m, std::string t, int d)
-            : artists(std::move(a)), musicpath(std::move(m)), title(std::move(t)), totalDuration(d) {}
+        Track(std::vector<std::string> artists,
+              fs::path music_path,
+              std::string title,
+              int duration)
+            : artists(std::move(artists)),
+              music_path(std::move(music_path)),
+              title(std::move(title)),
+              total_duration(duration) {}
 
         const std::vector<std::string>& getArtists() const { return artists; }
         const std::string& getTitle() const { return title; }
-        const std::filesystem::path& getMusicPath() const { return musicpath; }
-        int getDuration() const { return totalDuration; }
+        const fs::path& getMusicPath() const { return music_path; }
+        int getDuration() const { return total_duration; }
 };

@@ -30,12 +30,12 @@ FetchContent_MakeAvailable(json)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/model/library.cpp
-    src/model/musicDirectory.cpp
+    src/model/music_directory.cpp
     src/model/audio.cpp
     src/model/audio_impl.cpp
     src/model/queue.cpp
     src/model/playlist.cpp
-    src/model/playHistory.cpp
+    src/model/play_history.cpp
     src/model/persistence.cpp
 )
 

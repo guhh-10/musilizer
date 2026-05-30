@@ -9,18 +9,18 @@
 
 using json = nlohmann::json;
 
-void persistence::init(){
+void Persistence::init(){
     fs::create_directories(config::DATA_DIR);
 
     auto writeDefault = [](const fs::path& path, const nlohmann::json& j){
         std::ofstream f(path);
         if(!f.is_open()){
-            std::cerr << "[persistence::init] failed to create: " << path << "\n";
+            std::cerr << "[Persistence::init] failed to create: " << path << "\n";
             return;
         }
         f << j;
         if(!f)
-            std::cerr << "[persistence::init] write error: " << path << "\n";
+            std::cerr << "[Persistence::init] write error: " << path << "\n";
     };
 
     if(!fs::exists(config::SETTING)){
@@ -44,22 +44,22 @@ void persistence::init(){
     }
 }
 
-void persistence::saveSettings(float volume, bool shuffle, bool repeat){
+void Persistence::saveSettings(float volume, bool shuffle, bool repeat){
     nlohmann::json j;
     j["volume"] = volume;
     j["shuffle"] = shuffle;
     j["repeat"] = repeat;
     std::ofstream f(config::SETTING);
     if(!f.is_open()){
-        std::cerr << "[persistence::saveSettings] failed: cannot open settings file for write\n";
+        std::cerr << "[Persistence::saveSettings] failed: cannot open settings file for write\n";
         return;
     }
     f << j;
     if(!f)
-        std::cerr << "[persistence::saveSettings] failed: write error\n";
+        std::cerr << "[Persistence::saveSettings] failed: write error\n";
 }
 
-void persistence::loadSettings(float& volume, bool& shuffle, bool& repeat){
+void Persistence::loadSettings(float& volume, bool& shuffle, bool& repeat){
     try {
         std::ifstream f(config::SETTING);
         if(!f.is_open()) throw std::runtime_error("cannot open settings file");
@@ -68,17 +68,17 @@ void persistence::loadSettings(float& volume, bool& shuffle, bool& repeat){
         shuffle = j.at("shuffle");
         repeat  = j.at("repeat");
     } catch(const std::exception& e){
-        std::cerr << "[persistence::loadSettings] failed: " << e.what() << " — using defaults\n";
+        std::cerr << "[Persistence::loadSettings] failed: " << e.what() << " — using defaults\n";
         volume  = 1.0f;
         shuffle = false;
         repeat  = false;
     }
 }
 
-void persistence::savePlaylists(const std::vector<playlist>& playlists){
+void Persistence::savePlaylists(const std::vector<Playlist>& playlists){
     nlohmann::json j;
     j["playlists"] = nlohmann::json::array();
-    for(const playlist& p : playlists){
+    for(const Playlist& p : playlists){
         nlohmann::json entry;
         entry["name"] = p.getName();
         // convert to string only here, at the serialisation boundary
@@ -90,36 +90,36 @@ void persistence::savePlaylists(const std::vector<playlist>& playlists){
     }
     std::ofstream f(config::PLAYLIST);
     if(!f.is_open()){
-        std::cerr << "[persistence::savePlaylists] failed: cannot open playlists file for write\n";
+        std::cerr << "[Persistence::savePlaylists] failed: cannot open playlists file for write\n";
         return;
     }
     f << j;
     if(!f)
-        std::cerr << "[persistence::savePlaylists] failed: write error\n";
+        std::cerr << "[Persistence::savePlaylists] failed: write error\n";
 }
 
-std::vector<playlist> persistence::loadPlaylists(const library& lib){
+std::vector<Playlist> Persistence::loadPlaylists(const Library& lib){
     try {
         std::ifstream f(config::PLAYLIST);
         if(!f.is_open()) throw std::runtime_error("cannot open playlists file");
         nlohmann::json j = nlohmann::json::parse(f);
-        std::vector<playlist> result;
+        std::vector<Playlist> result;
         for(const auto& entry : j.at("playlists")){
-            playlist p(entry.at("name"));
+            Playlist p(entry.at("name"));
             for(const auto& path : entry.at("tracks")){
-                const track* t = lib.findByPath(fs::path(path));
+                const Track* t = lib.findByPath(fs::path(path));
                 if(t) p.addTrack(*t);
             }
             result.push_back(p);
         }
         return result;
     } catch(const std::exception& e){
-        std::cerr << "[persistence::loadPlaylists] failed: " << e.what() << " — returning empty\n";
+        std::cerr << "[Persistence::loadPlaylists] failed: " << e.what() << " — returning empty\n";
         return {};
     }
 }
 
-void persistence::saveHistory(const playHistory& history){
+void Persistence::saveHistory(const PlayHistory& history){
     nlohmann::json j;
     std::vector<std::string> pathStrings;
     for(const fs::path& p : history.getHistory())
@@ -127,24 +127,24 @@ void persistence::saveHistory(const playHistory& history){
     j["history"] = pathStrings;
     std::ofstream f(config::HISTORY);
     if(!f.is_open()){
-        std::cerr << "[persistence::saveHistory] failed: cannot open history file for write\n";
+        std::cerr << "[Persistence::saveHistory] failed: cannot open history file for write\n";
         return;
     }
     f << j;
     if(!f)
-        std::cerr << "[persistence::saveHistory] failed: write error\n";
+        std::cerr << "[Persistence::saveHistory] failed: write error\n";
 }
 
-void persistence::loadHistory(playHistory& history, const library& lib){
+void Persistence::loadHistory(PlayHistory& history, const Library& lib){
     try {
         std::ifstream f(config::HISTORY);
         if(!f.is_open()) throw std::runtime_error("cannot open history file");
         nlohmann::json j = nlohmann::json::parse(f);
         for(const auto& path : j.at("history")){
-            const track* t = lib.findByPath(fs::path(path));
+            const Track* t = lib.findByPath(fs::path(path));
             if(t) history.push(*t);
         }
     } catch(const std::exception& e){
-        std::cerr << "[persistence::loadHistory] failed: " << e.what() << " — starting with empty history\n";
+        std::cerr << "[Persistence::loadHistory] failed: " << e.what() << " — starting with empty history\n";
     }
 }

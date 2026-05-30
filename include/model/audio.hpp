@@ -1,18 +1,19 @@
 #pragma once
 #include <miniaudio.h>
-#include <filesystem>
 #include <atomic>
 #include <mutex>
 
-class audio{
+#include "config.hpp"
+
+class Audio{
     private:
         ma_device   device;
         ma_decoder  decoder;
-        std::mutex  decoderMutex;
-        std::atomic<float> userVolume{1.0f};
-        std::atomic<bool>   seeking = false;
-        std::atomic<bool>   trackEnded = false;
-        std::atomic<bool>   decoderInit = false;
+        std::mutex  decoder_mutex;
+        std::atomic<float> user_volume{1.0f};
+        std::atomic<bool>  seeking = false;
+        std::atomic<bool>  track_ended = false;
+        std::atomic<bool>  decoder_initialized = false;
 
         static void dataCallback(
             ma_device* device, void* output, const void* input, ma_uint32 frameCount);
@@ -20,17 +21,17 @@ class audio{
         void fadeIn();
 
     public:
-        audio();
-        ~audio();
+        Audio();
+        ~Audio();
 
-        audio(const audio&)             = delete;
-        audio& operator=(const audio&)  = delete;
-        audio(audio&&)                  = delete;
-        audio& operator=(audio&&)       = delete;
+        Audio(const Audio&)            = delete;
+        Audio& operator=(const Audio&) = delete;
+        Audio(Audio&&)                 = delete;
+        Audio& operator=(Audio&&)      = delete;
 
         bool hasTrackEnded() const;
         void resetTrackEnded();
-        void load(const std::filesystem::path& musicpath);
+        void load(const fs::path& music_path);
         void play();
         void pause();
         void seek(float second);

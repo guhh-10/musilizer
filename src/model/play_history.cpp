@@ -1,4 +1,3 @@
-// playHistory.cpp
 #include "model/play_history.hpp"
 #include "config.hpp"
 
