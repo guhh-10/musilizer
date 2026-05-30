@@ -22,9 +22,14 @@ audio::audio(){
 }
 
 audio::~audio(){
+    ma_device_stop(&device);
+    {
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        if(decoderInit.load())
+            ma_decoder_uninit(&decoder);
+        decoderInit.store(false);
+    }
     ma_device_uninit(&device);
-    if(decoderInit.load())
-        ma_decoder_uninit(&decoder);
 }
 
 void audio::dataCallback(ma_device* device, void* output, const void* input, ma_uint32 frameCount){
