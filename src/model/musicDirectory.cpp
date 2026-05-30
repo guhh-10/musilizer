@@ -58,9 +58,28 @@ void musicDirectory::loadMetadata(fs::path musicpath, library& lib){
 }
 
 void musicDirectory::initialize(library& lib){
-    for( const auto& entry : fs::directory_iterator(config::MUSIC_DIR)){
-        if(entry.path().extension() == ".mp3"){
-            loadMetadata(entry.path(), lib);
+    if(!fs::exists(config::MUSIC_DIR)){
+        std::cerr << "[musicDirectory] music directory not found: "
+                  << config::MUSIC_DIR << " — library will be empty\n";
+        return;
+    }
+
+    if(!fs::is_directory(config::MUSIC_DIR)){
+        std::cerr << "[musicDirectory] path is not a directory: "
+                  << config::MUSIC_DIR << " — library will be empty\n";
+        return;
+    }
+
+    try {
+        for(const auto& entry : fs::directory_iterator(
+                config::MUSIC_DIR,
+                fs::directory_options::skip_permission_denied))
+        {
+            if(entry.path().extension() == ".mp3")
+                loadMetadata(entry.path(), lib);
         }
+    } catch(const fs::filesystem_error& e){
+        std::cerr << "[musicDirectory] error reading directory: "
+                  << e.what() << " — partial library loaded\n";
     }
 }

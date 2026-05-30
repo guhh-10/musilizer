@@ -30,6 +30,11 @@ std::optional<fs::path> queue::next(){
 }
 
 void queue::setShuffle(bool enabled){
+    if(trackQueue.empty()) {
+        shuffle = enabled;
+        return;
+    }
+
     shuffle = enabled;
     if(shuffle){
         originalOrder.assign(trackQueue.begin(), trackQueue.end());
@@ -48,7 +53,9 @@ void queue::setRepeat(bool enabled){
     repeat = enabled;
 }
 
-const fs::path& queue::current() const{
+std::optional<fs::path> queue::current() const{
+    if(trackQueue.empty())
+        return std::nullopt;
     return trackQueue.front();
 }
 

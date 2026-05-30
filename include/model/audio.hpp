@@ -9,10 +9,10 @@ class audio{
         ma_device   device;
         ma_decoder  decoder;
         float       userVolume = 1.0f;
-        bool        decoderInit = false;
         std::mutex  decoderMutex;
-        std::atomic<bool> seeking = false;
-        std::atomic<bool> trackEnded = false;
+        std::atomic<bool>   seeking = false;
+        std::atomic<bool>   trackEnded = false;
+        std::atomic<bool>   decoderInit = false;
 
         static void dataCallback(
             ma_device* device, void* output, const void* input, ma_uint32 frameCount);

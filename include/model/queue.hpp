@@ -22,7 +22,7 @@ class queue{
         std::optional<fs::path> next();
         void setShuffle(bool enabled);
         void setRepeat(bool enabled);
-        const fs::path& current() const;
+        std::optional<fs::path> current() const;
         bool hasNext() const;
         void addTrackToFront(const track& t);
         void addTrackToBack(const track& t);

@@ -5,12 +5,12 @@ const std::unordered_map<fs::path, track, PathHash>& library::getTracks() const{
 }
 
 const track* library::findByPath(const fs::path& path) const{
-    auto it = tracks.find(fs::weakly_canonical(path));
+    auto it = tracks.find(path.lexically_normal());
     if(it != tracks.end()) return &it->second;
     return nullptr;
 }
 
 void library::addTrack(track t){
-    fs::path key = fs::weakly_canonical(t.getMusicPath());
+    fs::path key = t.getMusicPath().lexically_normal();
     tracks.emplace(key, std::move(t));
 }

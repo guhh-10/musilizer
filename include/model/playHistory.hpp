@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <optional>
 #include <string>
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -15,9 +16,9 @@ class playHistory {
 
     public:
         void push(const track& t);
-        const fs::path& back();
-        const fs::path& forward();
-        const fs::path& current() const;
+        std::optional<fs::path> back();
+        std::optional<fs::path> forward();
+        std::optional<fs::path> current() const;
         bool canGoBack() const;
         bool canGoForward() const;
         const std::vector<fs::path>& getHistory() const;

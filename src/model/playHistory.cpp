@@ -15,20 +15,23 @@ void playHistory::push(const track& t){
     }
 }
 
-
-const fs::path& playHistory::back(){
-    if (canGoBack())
-        cursor--;
+std::optional<fs::path> playHistory::back(){
+    if(history.empty() || !canGoBack())
+        return std::nullopt;
+    cursor--;
     return history[cursor];
 }
 
-const fs::path& playHistory::forward(){
-    if (canGoForward())
-        cursor++;
+std::optional<fs::path> playHistory::forward(){
+    if(history.empty() || !canGoForward())
+        return std::nullopt;
+    cursor++;
     return history[cursor];
 }
 
-const fs::path& playHistory::current() const{
+std::optional<fs::path> playHistory::current() const{
+    if(history.empty() || cursor < 0)
+        return std::nullopt;
     return history[cursor];
 }
 
