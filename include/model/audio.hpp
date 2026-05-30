@@ -23,10 +23,10 @@ class audio{
         audio();
         ~audio();
 
-        audio(const audio&) = delete;
-        audio& operator=(const audio&) = delete;
-        audio(audio&&) = delete;
-        audio& operator=(audio&&) = delete;
+        audio(const audio&)             = delete;
+        audio& operator=(const audio&)  = delete;
+        audio(audio&&)                  = delete;
+        audio& operator=(audio&&)       = delete;
 
         bool hasTrackEnded() const;
         void resetTrackEnded();

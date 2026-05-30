@@ -1,6 +1,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <iostream>
 #include <miniaudio.h>
 
 #include "model/audio.hpp"
@@ -13,7 +14,11 @@ audio::audio(){
     config.dataCallback     = audio::dataCallback;
     config.pUserData        = this;
 
-    ma_device_init(NULL, &config, &device);
+    ma_result result = ma_device_init(NULL, &config, &device);
+    if(result != MA_SUCCESS)
+        throw std::runtime_error(
+            std::string("audio: failed to initialise device: ") +
+            ma_result_description(result));
 }
 
 audio::~audio(){
@@ -90,7 +95,13 @@ void audio::load(const std::filesystem::path& musicpath){
             ma_decoder_uninit(&decoder);
 
         ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
-        ma_decoder_init_file(musicpath.string().c_str(), &decoderConfig, &decoder);
+        ma_result result = ma_decoder_init_file(
+            musicpath.string().c_str(), &decoderConfig, &decoder);
+        if(result != MA_SUCCESS)
+            throw std::runtime_error(
+                std::string("audio: failed to open '") +
+                musicpath.string() + "': " +
+                ma_result_description(result));
         decoderInit = true;
     }
 
@@ -99,7 +110,11 @@ void audio::load(const std::filesystem::path& musicpath){
 
 void audio::play(){
     ma_device_set_master_volume(&device, 0.0f);
-    ma_device_start(&device);
+    ma_result result = ma_device_start(&device);
+    if(result != MA_SUCCESS)
+        throw std::runtime_error(
+            std::string("audio: failed to start device: ") +
+            ma_result_description(result));
     fadeIn();
 }
 
@@ -117,7 +132,9 @@ void audio::seek(float second){
     {
         std::lock_guard<std::mutex> lock(decoderMutex);
         ma_uint64 frame = (ma_uint64)(second * decoder.outputSampleRate);
-        ma_decoder_seek_to_pcm_frame(&decoder, frame);
+        ma_result result = ma_decoder_seek_to_pcm_frame(&decoder, frame);
+        if(result != MA_SUCCESS)
+            std::cerr << "[audio::seek] failed: " << ma_result_description(result) << "\n";
     }
 
     seeking = false;
