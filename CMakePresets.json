@@ -1,0 +1,53 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "displayName": "Default",
+      "configurePreset": "default"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "unit",
+      "displayName": "Unit tests",
+      "configurePreset": "default",
+      "filter": {
+        "include": {
+          "label": "unit"
+        }
+      }
+    },
+    {
+      "name": "audio",
+      "displayName": "Audio tests",
+      "configurePreset": "default",
+      "filter": {
+        "include": {
+          "label": "audio"
+        }
+      }
+    },
+    {
+      "name": "all",
+      "displayName": "All tests",
+      "configurePreset": "default"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 3,
+  "testPresets": [
+    {
+      "name": "unit",
+      "displayName": "Unit tests",
+      "binaryDir": "${sourceDir}/build",
+      "filter": {
+        "include": {
+          "label": "unit"
+        }
+      }
+    },
+    {
+      "name": "audio",
+      "displayName": "Audio tests",
+      "binaryDir": "${sourceDir}/build",
+      "filter": {
+        "include": {
+          "label": "audio"
+        }
+      }
+    },
+    {
+      "name": "all",
+      "displayName": "All tests",
+      "binaryDir": "${sourceDir}/build"
+    }
+  ]
+}
