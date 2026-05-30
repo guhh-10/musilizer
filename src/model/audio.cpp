@@ -25,7 +25,12 @@ audio::~audio(){
 void audio::dataCallback(ma_device* device, void* output, const void* input, ma_uint32 frameCount){
     audio* self = static_cast<audio*>(device->pUserData);
     if (!self->decoderInit || self->seeking) {
-        // output silence during seek
+        memset(output, 0, frameCount * 2 * sizeof(float));
+        return;
+    }
+
+    std::unique_lock<std::mutex> lock(self->decoderMutex, std::try_to_lock);
+    if (!lock.owns_lock()) {
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
     }
@@ -77,12 +82,18 @@ void audio::load(const std::filesystem::path& musicpath){
     if(decoderInit){
         fadeOut();
         ma_device_stop(&device);
-        ma_decoder_uninit(&decoder);
     }
 
-    ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
-    ma_decoder_init_file(musicpath.string().c_str(), &decoderConfig, &decoder);
-    decoderInit = true;
+    {
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        if(decoderInit)
+            ma_decoder_uninit(&decoder);
+
+        ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 2, 48000);
+        ma_decoder_init_file(musicpath.string().c_str(), &decoderConfig, &decoder);
+        decoderInit = true;
+    }
+
     play();
 }
 
@@ -102,8 +113,13 @@ void audio::seek(float second){
     if (!decoderInit) return;
     seeking = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    ma_uint64 frame = (ma_uint64)(second * decoder.outputSampleRate);
-    ma_decoder_seek_to_pcm_frame(&decoder, frame);
+    
+    {
+        std::lock_guard<std::mutex> lock(decoderMutex);
+        ma_uint64 frame = (ma_uint64)(second * decoder.outputSampleRate);
+        ma_decoder_seek_to_pcm_frame(&decoder, frame);
+    }
+
     seeking = false;
 }
 
@@ -111,6 +127,6 @@ void audio::setVolume(float volume){
     userVolume = volume;
     ma_device_set_master_volume(&device, userVolume);
 }
-const float audio::getVolume() const{
+float audio::getVolume() const{
     return userVolume;
 }

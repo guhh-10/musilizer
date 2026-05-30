@@ -2,6 +2,7 @@
 #include <miniaudio.h>
 #include <filesystem>
 #include <atomic>
+#include <mutex>
 
 class audio{
     private:
@@ -9,6 +10,7 @@ class audio{
         ma_decoder  decoder;
         float       userVolume = 1.0f;
         bool        decoderInit = false;
+        std::mutex  decoderMutex;
         std::atomic<bool> seeking = false;
         std::atomic<bool> trackEnded = false;
 
@@ -30,5 +32,5 @@ class audio{
         // TODO:
         // void getPosition() const;
         void setVolume(float volume);
-        const float getVolume() const;
+        float getVolume() const;
 };

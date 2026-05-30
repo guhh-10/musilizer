@@ -6,20 +6,25 @@ void queue::load(const std::vector<const track*>& tracks){
     trackQueue.clear();
     originalOrder.clear();
     for(const track* t : tracks){
-        trackQueue.push_back(t->getMusicPath().string());
-        originalOrder.push_back(t->getMusicPath().string());
+        trackQueue.push_back(t->getMusicPath());
+        originalOrder.push_back(t->getMusicPath());
     }
 }
 
-const std::string& queue::next(){
-    if(!hasNext())
-        return trackQueue.front();
+std::optional<fs::path> queue::next(){
+    if(trackQueue.empty())
+        return std::nullopt;
 
-    if(repeat){
-        trackQueue.push_back(trackQueue.front());
-        if(shuffle) originalOrder.push_back(trackQueue.front());
+    if(!hasNext()){
+        if(repeat) return trackQueue.front();
+        return std::nullopt;
     }
 
+    fs::path looping = trackQueue.front();
+    if(repeat){
+        trackQueue.push_back(looping);
+        originalOrder.push_back(looping);
+    }
     trackQueue.pop_front();
     return trackQueue.front();
 }
@@ -28,15 +33,14 @@ void queue::setShuffle(bool enabled){
     shuffle = enabled;
     if(shuffle){
         originalOrder.assign(trackQueue.begin(), trackQueue.end());
-        std::shuffle(trackQueue.begin() + 1, trackQueue.end(), 
+        std::shuffle(trackQueue.begin() + 1, trackQueue.end(),
                      std::mt19937{std::random_device{}()});
-    }else{
-        std::string current = trackQueue.front();
+    } else {
+        fs::path current = trackQueue.front();
         trackQueue.assign(originalOrder.begin(), originalOrder.end());
         auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
-        if(it != trackQueue.end()){
+        if(it != trackQueue.end())
             std::rotate(trackQueue.begin(), it, it + 1);
-        }
     }
 }
 
@@ -44,23 +48,29 @@ void queue::setRepeat(bool enabled){
     repeat = enabled;
 }
 
-const std::string& queue::current() const{
+const fs::path& queue::current() const{
     return trackQueue.front();
 }
 
 bool queue::hasNext() const {
-    return trackQueue.size() > 1; // >1 because front is current
+    return trackQueue.size() > 1;
 }
 
 void queue::addTrackToFront(const track& t){
-    if (trackQueue.empty())
-        trackQueue.push_front(t.getMusicPath().string());
-    else
-        trackQueue.insert(trackQueue.begin() + 1, t.getMusicPath().string());
+    fs::path path = t.getMusicPath();
+    if(trackQueue.empty()){
+        trackQueue.push_front(path);
+        originalOrder.push_front(path);
+    } else {
+        trackQueue.insert(trackQueue.begin() + 1, path);
+        originalOrder.insert(originalOrder.begin() + 1, path);
+    }
 }
 
 void queue::addTrackToBack(const track& t){
-    trackQueue.push_back(t.getMusicPath().string());
+    fs::path path = t.getMusicPath();
+    trackQueue.push_back(path);
+    originalOrder.push_back(path);
 }
 
 bool queue::isShuffle() const{

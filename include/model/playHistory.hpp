@@ -10,16 +10,16 @@ class library;
 
 class playHistory {
     private:
-        std::vector<std::string> history;
+        std::vector<fs::path> history;;
         int cursor = -1;
 
     public:
         void push(const track& t);
-        const std::string& back();
-        const std::string& forward();
-        const std::string& current() const;
+        const fs::path& back();
+        const fs::path& forward();
+        const fs::path& current() const;
         bool canGoBack() const;
         bool canGoForward() const;
-        const std::vector<std::string>& getHistory() const;
+        const std::vector<fs::path>& getHistory() const;
         void clear();
 };

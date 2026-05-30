@@ -54,7 +54,11 @@ void persistence::savePlaylists(const std::vector<playlist>& playlists){
     for(const playlist& p : playlists){
         nlohmann::json entry;
         entry["name"] = p.getName();
-        entry["tracks"] = p.getPlaylistTracks();
+        // convert to string only here, at the serialisation boundary
+        std::vector<std::string> pathStrings;
+        for(const fs::path& path : p.getPlaylistTracks())
+            pathStrings.push_back(path.string());
+        entry["tracks"] = pathStrings;
         j["playlists"].push_back(entry);
     }
     std::ofstream(config::PLAYLIST) << j;
@@ -67,7 +71,7 @@ std::vector<playlist> persistence::loadPlaylists(const library& lib){
     for(const auto& entry : j["playlists"]){
         playlist p(entry["name"]);
         for(const std::string& path : entry["tracks"]){
-            const track* t = lib.findByPath(path);
+            const track* t = lib.findByPath(fs::path(path));  // string→path here
             if(t) p.addTrack(*t);
         }
         result.push_back(p);
@@ -77,7 +81,10 @@ std::vector<playlist> persistence::loadPlaylists(const library& lib){
 
 void persistence::saveHistory(const playHistory& history){
     nlohmann::json j;
-    j["history"] = history.getHistory();
+    std::vector<std::string> pathStrings;
+    for(const fs::path& p : history.getHistory())
+        pathStrings.push_back(p.string());
+    j["history"] = pathStrings;
     std::ofstream(config::HISTORY) << j;
 }
 

@@ -6,20 +6,20 @@ namespace fs = std::filesystem;
 
 #include "track.hpp"
 
-class library; 
+class library;
 
 class playlist{
     private:
-        std::string         name;
-        std::vector<std::string>  trackPaths;
+        std::string            name;
+        std::vector<fs::path>  trackPaths;   // was vector<string>
 
     public:
         playlist(std::string name);
 
         void addTrack(const track& t);
         void removeTrack(const fs::path& path);
-        const std::string& getTrack(int index) const;
-        const std::vector<std::string>& getPlaylistTracks() const;
+        const fs::path& getTrack(int index) const;           // was string
+        const std::vector<fs::path>& getPlaylistTracks() const; // was vector<string>
         void moveTrack(int from, int to);
         void clear();
         const std::string& getName() const;
