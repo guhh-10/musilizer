@@ -16,15 +16,16 @@ std::optional<fs::path> queue::next(){
         return std::nullopt;
 
     if(!hasNext()){
-        if(repeat) return trackQueue.front();
+        if(repeat){
+            trackQueue.assign(originalOrder.begin(), originalOrder.end());
+            if(shuffle)
+                std::shuffle(trackQueue.begin(), trackQueue.end(),
+                             std::mt19937{std::random_device{}()});
+            return trackQueue.front();
+        }
         return std::nullopt;
     }
 
-    fs::path looping = trackQueue.front();
-    if(repeat){
-        trackQueue.push_back(looping);
-        originalOrder.push_back(looping);
-    }
     trackQueue.pop_front();
     return trackQueue.front();
 }
@@ -45,7 +46,7 @@ void queue::setShuffle(bool enabled){
         trackQueue.assign(originalOrder.begin(), originalOrder.end());
         auto it = std::find(trackQueue.begin(), trackQueue.end(), current);
         if(it != trackQueue.end())
-            std::rotate(trackQueue.begin(), it, it + 1);
+            std::rotate(trackQueue.begin(), it, trackQueue.end());
     }
 }
 

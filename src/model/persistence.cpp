@@ -106,7 +106,7 @@ std::vector<playlist> persistence::loadPlaylists(const library& lib){
         std::vector<playlist> result;
         for(const auto& entry : j.at("playlists")){
             playlist p(entry.at("name"));
-            for(const std::string path : entry.at("tracks")){
+            for(const auto& path : entry.at("tracks")){
                 const track* t = lib.findByPath(fs::path(path));
                 if(t) p.addTrack(*t);
             }
@@ -140,7 +140,7 @@ void persistence::loadHistory(playHistory& history, const library& lib){
         std::ifstream f(config::HISTORY);
         if(!f.is_open()) throw std::runtime_error("cannot open history file");
         nlohmann::json j = nlohmann::json::parse(f);
-        for(const std::string path : j.at("history")){
+        for(const auto& path : j.at("history")){
             const track* t = lib.findByPath(fs::path(path));
             if(t) history.push(*t);
         }

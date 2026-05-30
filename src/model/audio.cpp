@@ -59,25 +59,26 @@ void audio::dataCallback(ma_device* device, void* output, const void* input, ma_
 }
 
 void audio::fadeOut(){
-    float step = userVolume / 10.0f;
-    float volume = userVolume;
+    float vol = userVolume.load();
+    float step = vol / 10.0f;
+    float volume = vol;
     for (int i = 0; i < 10; i++) {
         volume -= step;
-        ma_device_set_master_volume(&device, volume);
+        ma_device_set_master_volume(&device, std::max(volume, 0.0f));
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 void audio::fadeIn(){
-    float target = userVolume;
-    float step = userVolume / 10.0f;
+    float target = userVolume.load();
+    float step = target / 10.0f;
     float volume = 0.0f;
     for (int i = 0; i < 10; i++) {
         volume += step;
         ma_device_set_master_volume(&device, volume);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    ma_device_set_master_volume(&device, target); // make sure it lands exactly at 1.0
+    ma_device_set_master_volume(&device, target);
 }
 
 bool audio::hasTrackEnded() const{ 
@@ -126,7 +127,7 @@ void audio::play(){
 void audio::pause(){
     fadeOut();
     ma_device_stop(&device);
-    ma_device_set_master_volume(&device, userVolume);
+    ma_device_set_master_volume(&device, userVolume.load());
 }
 
 void audio::seek(float second){
@@ -146,9 +147,9 @@ void audio::seek(float second){
 }
 
 void audio::setVolume(float volume){
-    userVolume = volume;
-    ma_device_set_master_volume(&device, userVolume);
+    userVolume.store(volume);
+    ma_device_set_master_volume(&device, volume);
 }
 float audio::getVolume() const{
-    return userVolume;
+    return userVolume.load();
 }

@@ -8,8 +8,8 @@ class audio{
     private:
         ma_device   device;
         ma_decoder  decoder;
-        float       userVolume = 1.0f;
         std::mutex  decoderMutex;
+        std::atomic<float> userVolume{1.0f};
         std::atomic<bool>   seeking = false;
         std::atomic<bool>   trackEnded = false;
         std::atomic<bool>   decoderInit = false;

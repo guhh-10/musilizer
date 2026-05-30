@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 #include "model/musicDirectory.hpp"
 #include "model/track.hpp"
@@ -71,11 +72,13 @@ void musicDirectory::initialize(library& lib){
     }
 
     try {
-        for(const auto& entry : fs::directory_iterator(
+        for(const auto& entry : fs::recursive_directory_iterator(
                 config::MUSIC_DIR,
                 fs::directory_options::skip_permission_denied))
         {
-            if(entry.path().extension() == ".mp3")
+            std::string ext = entry.path().extension().string();
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if(ext == ".mp3")
                 loadMetadata(entry.path(), lib);
         }
     } catch(const fs::filesystem_error& e){
