@@ -5,7 +5,7 @@
 playlist::playlist(std::string name) : name(std::move(name)) {}
 
 void playlist::addTrack(const track& t){
-    trackPaths.push_back(t.getMusicPath());  // no .string()
+    trackPaths.push_back(t.getMusicPath());
 }
 
 void playlist::removeTrack(const fs::path& path){
@@ -23,13 +23,16 @@ const std::vector<fs::path>& playlist::getPlaylistTracks() const{
 }
 
 void playlist::moveTrack(int from, int to){
-    if (from == to) return;
-    if (from < 0 || from >= size()) return;
-    if (to < 0 || to >= size()) return;
+    if(from == to) return;
+    if(from < 0 || from >= size()) return;
+    if(to < 0 || to >= size()) return;
 
-    fs::path temp = trackPaths[from];
-    trackPaths.erase(trackPaths.begin() + from);
-    trackPaths.insert(trackPaths.begin() + to, temp);
+    auto f = static_cast<std::ptrdiff_t>(from);
+    auto t = static_cast<std::ptrdiff_t>(to);
+
+    fs::path temp = trackPaths[f];
+    trackPaths.erase(trackPaths.begin() + f);
+    trackPaths.insert(trackPaths.begin() + t, temp);
 }
 
 void playlist::clear(){
