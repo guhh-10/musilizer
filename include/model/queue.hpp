@@ -11,7 +11,6 @@ namespace fs = std::filesystem;
 
 class queue{
     private:
-        private:
         std::deque<fs::path>   trackQueue;
         std::deque<fs::path>  originalOrder;
         bool shuffle    = false;
