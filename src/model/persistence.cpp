@@ -12,26 +12,36 @@ using json = nlohmann::json;
 void persistence::init(){
     fs::create_directories(config::DATA_DIR);
 
+    auto writeDefault = [](const fs::path& path, const nlohmann::json& j){
+        std::ofstream f(path);
+        if(!f.is_open()){
+            std::cerr << "[persistence::init] failed to create: " << path << "\n";
+            return;
+        }
+        f << j;
+        if(!f)
+            std::cerr << "[persistence::init] write error: " << path << "\n";
+    };
+
     if(!fs::exists(config::SETTING)){
         nlohmann::json j;
-        j["volume"] = 1.0f;
+        j["volume"]  = 1.0f;
         j["shuffle"] = false;
-        j["repeat"] = false;
-        std::ofstream(config::SETTING) << j;
+        j["repeat"]  = false;
+        writeDefault(config::SETTING, j);
     }
-    
+
     if(!fs::exists(config::PLAYLIST)){
         nlohmann::json j;
         j["playlists"] = nlohmann::json::array();
-        std::ofstream(config::PLAYLIST) << j;
+        writeDefault(config::PLAYLIST, j);
     }
-    
-    if(!fs::exists(config::HISTORY)){
-    nlohmann::json j;
-    j["history"] = nlohmann::json::array();
-    std::ofstream(config::HISTORY) << j;
-}
 
+    if(!fs::exists(config::HISTORY)){
+        nlohmann::json j;
+        j["history"] = nlohmann::json::array();
+        writeDefault(config::HISTORY, j);
+    }
 }
 
 void persistence::saveSettings(float volume, bool shuffle, bool repeat){
@@ -39,7 +49,14 @@ void persistence::saveSettings(float volume, bool shuffle, bool repeat){
     j["volume"] = volume;
     j["shuffle"] = shuffle;
     j["repeat"] = repeat;
-    std::ofstream(config::SETTING) << j;
+    std::ofstream f(config::SETTING);
+    if(!f.is_open()){
+        std::cerr << "[persistence::saveSettings] failed: cannot open settings file for write\n";
+        return;
+    }
+    f << j;
+    if(!f)
+        std::cerr << "[persistence::saveSettings] failed: write error\n";
 }
 
 void persistence::loadSettings(float& volume, bool& shuffle, bool& repeat){
@@ -71,7 +88,14 @@ void persistence::savePlaylists(const std::vector<playlist>& playlists){
         entry["tracks"] = pathStrings;
         j["playlists"].push_back(entry);
     }
-    std::ofstream(config::PLAYLIST) << j;
+    std::ofstream f(config::PLAYLIST);
+    if(!f.is_open()){
+        std::cerr << "[persistence::savePlaylists] failed: cannot open playlists file for write\n";
+        return;
+    }
+    f << j;
+    if(!f)
+        std::cerr << "[persistence::savePlaylists] failed: write error\n";
 }
 
 std::vector<playlist> persistence::loadPlaylists(const library& lib){
@@ -101,7 +125,14 @@ void persistence::saveHistory(const playHistory& history){
     for(const fs::path& p : history.getHistory())
         pathStrings.push_back(p.string());
     j["history"] = pathStrings;
-    std::ofstream(config::HISTORY) << j;
+    std::ofstream f(config::HISTORY);
+    if(!f.is_open()){
+        std::cerr << "[persistence::saveHistory] failed: cannot open history file for write\n";
+        return;
+    }
+    f << j;
+    if(!f)
+        std::cerr << "[persistence::saveHistory] failed: write error\n";
 }
 
 void persistence::loadHistory(playHistory& history, const library& lib){
