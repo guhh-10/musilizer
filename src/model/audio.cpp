@@ -146,6 +146,14 @@ void Audio::seek(float second){
     seeking.store(false);
 }
 
+float Audio::getPosition() const {
+    if (!decoder_initialized.load()) return 0.0f;
+    std::lock_guard<std::mutex> lock(decoder_mutex);
+    ma_uint64 cursor = 0;
+    ma_decoder_get_cursor_in_pcm_frames(&decoder, &cursor);
+    return static_cast<float>(cursor) / decoder.outputSampleRate;
+}
+
 void Audio::setVolume(float volume){
     user_volume.store(volume);
     ma_device_set_master_volume(&device, volume);

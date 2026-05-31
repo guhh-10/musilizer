@@ -8,8 +8,8 @@
 class Audio{
     private:
         ma_device   device;
-        ma_decoder  decoder;
-        std::mutex  decoder_mutex;
+        mutable ma_decoder decoder;
+        mutable std::mutex decoder_mutex;
         std::atomic<float> user_volume{1.0f};
         std::atomic<bool>  seeking = false;
         std::atomic<bool>  track_ended = false;
@@ -35,8 +35,7 @@ class Audio{
         void play();
         void pause();
         void seek(float second);
-        // TODO:
-        // void getPosition() const;
+        float getPosition() const;
         void setVolume(float volume);
         float getVolume() const;
 };
