@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <vector>
 #include <thread>
 #include <chrono>
 #include <cctype>
@@ -81,23 +82,30 @@ std::string readFileText(const fs::path& path) {
     return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
 }
 
-fs::path findFirstMp3(const fs::path& dir) {
-    if (!fs::exists(dir))
-        return {};
+void writeSampleMp3(const fs::path& path, std::size_t frameCount = 39) {
+    std::ofstream out(path, std::ios::binary);
+    REQUIRE(out.is_open());
 
-    for (const auto& entry : fs::directory_iterator(dir)) {
-        if (!entry.is_regular_file())
-            continue;
+    std::vector<unsigned char> frame(417, 0);
+    frame[0] = 0xFF;
+    frame[1] = 0xFB;
+    frame[2] = 0x90;
+    frame[3] = 0x64;
 
-        std::string ext = entry.path().extension().string();
-        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
-            return static_cast<char>(std::tolower(c));
-        });
-        if (ext == ".mp3")
-            return entry.path();
-    }
+    for (std::size_t i = 0; i < frameCount; ++i)
+        out.write(reinterpret_cast<const char*>(frame.data()), static_cast<std::streamsize>(frame.size()));
+}
 
-    return {};
+void tagSampleMp3(const fs::path& path, const std::string& title, const std::string& artist) {
+    TagLib::MPEG::File file(path.string().c_str());
+    REQUIRE(file.isValid());
+
+    TagLib::ID3v2::Tag* tag = file.ID3v2Tag(true);
+    REQUIRE(tag != nullptr);
+
+    tag->setTitle(title);
+    tag->setArtist(artist);
+    REQUIRE(file.save());
 }
 } // namespace
 
@@ -620,70 +628,15 @@ TEST_CASE("MusicDirectory reads metadata and recurses", "[music_directory]") {
     fs::path root = makeTempRoot("musilizer_music_dir_positive");
     ScopedConfigRoot scoped(root);
 
-    fs::path fixtureDir = findFixture("music");
-    if (fixtureDir.empty()) {
-        WARN("music fixture directory not found");
-        return;
-    }
-
-    fs::path source = findFirstMp3(fixtureDir);
-    if (source.empty()) {
-        WARN("no mp3 fixture found");
-        return;
-    }
-
-    TagLib::MPEG::File sourceFile(source.string().c_str());
-    if (!sourceFile.isValid() || !sourceFile.ID3v2Tag()) {
-        WARN("fixture mp3 has no readable tag");
-        return;
-    }
-
-    TagLib::ID3v2::Tag* tag = sourceFile.ID3v2Tag();
-
-    std::string expectedTitle;
-    auto tit2 = tag->frameListMap()["TIT2"];
-    if (!tit2.isEmpty())
-        expectedTitle = tit2.front()->toString().toCString(true);
-
-    std::vector<std::string> expectedArtists;
-    auto txxx = tag->frameListMap()["TXXX"];
-    for (const auto& frame : txxx) {
-        std::string raw = frame->toString().toCString(true);
-        if (raw.rfind("[ARTISTS]", 0) == 0) {
-            std::string value = raw.substr(10);
-            std::stringstream ss(value);
-            std::string token;
-            while (std::getline(ss, token, '\0'))
-                expectedArtists.push_back(token);
-            if (expectedArtists.empty())
-                expectedArtists.push_back(value);
-            break;
-        }
-    }
-
-    if (expectedArtists.empty()) {
-        auto tpe1 = tag->frameListMap()["TPE1"];
-        if (!tpe1.isEmpty())
-            expectedArtists.push_back(tpe1.front()->toString().toCString(true));
-    }
-
-    int expectedDuration = 0;
-    if (sourceFile.audioProperties())
-        expectedDuration = sourceFile.audioProperties()->lengthInSeconds();
-
-    if (expectedTitle.empty() || expectedArtists.empty() || expectedDuration == 0) {
-        WARN("fixture mp3 missing title, artist, or duration");
-        return;
-    }
-
     fs::create_directories(config::MUSIC_DIR);
     fs::path topLevel = config::MUSIC_DIR / "sample.mp3";
-    fs::copy_file(source, topLevel, fs::copy_options::overwrite_existing);
+    writeSampleMp3(topLevel);
+    tagSampleMp3(topLevel, "Sample Title", "Sample Artist");
 
     fs::path nestedDir = config::MUSIC_DIR / "deep" / "more";
     fs::create_directories(nestedDir);
     fs::path nested = nestedDir / "nested.mp3";
-    fs::copy_file(source, nested, fs::copy_options::overwrite_existing);
+    fs::copy_file(topLevel, nested, fs::copy_options::overwrite_existing);
 
     Library lib;
     MusicDirectory dir;
@@ -691,10 +644,10 @@ TEST_CASE("MusicDirectory reads metadata and recurses", "[music_directory]") {
 
     const Track* track = lib.findByPath(topLevel);
     REQUIRE(track != nullptr);
-    CHECK(track->getTitle() == expectedTitle);
-    REQUIRE(track->getArtists().size() == expectedArtists.size());
-    CHECK(track->getArtists() == expectedArtists);
-    CHECK(track->getDuration() == expectedDuration);
+    CHECK(track->getTitle() == "Sample Title");
+    REQUIRE(track->getArtists().size() == 1);
+    CHECK(track->getArtists().front() == "Sample Artist");
+    CHECK(track->getDuration() > 0);
 
     CHECK(lib.findByPath(nested) != nullptr);
 }
