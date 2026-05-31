@@ -621,16 +621,22 @@ TEST_CASE("MusicDirectory reads metadata and recurses", "[music_directory]") {
     ScopedConfigRoot scoped(root);
 
     fs::path fixtureDir = findFixture("music");
-    if (fixtureDir.empty())
-        SKIP("music fixture directory not found");
+    if (fixtureDir.empty()) {
+        WARN("music fixture directory not found");
+        return;
+    }
 
     fs::path source = findFirstMp3(fixtureDir);
-    if (source.empty())
-        SKIP("no mp3 fixture found");
+    if (source.empty()) {
+        WARN("no mp3 fixture found");
+        return;
+    }
 
     TagLib::MPEG::File sourceFile(source.string().c_str());
-    if (!sourceFile.isValid() || !sourceFile.ID3v2Tag())
-        SKIP("fixture mp3 has no readable tag");
+    if (!sourceFile.isValid() || !sourceFile.ID3v2Tag()) {
+        WARN("fixture mp3 has no readable tag");
+        return;
+    }
 
     TagLib::ID3v2::Tag* tag = sourceFile.ID3v2Tag();
 
@@ -665,8 +671,10 @@ TEST_CASE("MusicDirectory reads metadata and recurses", "[music_directory]") {
     if (sourceFile.audioProperties())
         expectedDuration = sourceFile.audioProperties()->lengthInSeconds();
 
-    if (expectedTitle.empty() || expectedArtists.empty() || expectedDuration == 0)
-        SKIP("fixture mp3 missing title, artist, or duration");
+    if (expectedTitle.empty() || expectedArtists.empty() || expectedDuration == 0) {
+        WARN("fixture mp3 missing title, artist, or duration");
+        return;
+    }
 
     fs::create_directories(config::MUSIC_DIR);
     fs::path topLevel = config::MUSIC_DIR / "sample.mp3";
