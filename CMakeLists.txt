@@ -71,7 +71,7 @@ add_library(musilizer_core STATIC
     src/model/queue.cpp
     src/model/playlist.cpp
     src/model/play_history.cpp
-    src/model/persistence.cpp
+    src/repository/persistence.cpp
     src/controller/player.cpp
 )
 

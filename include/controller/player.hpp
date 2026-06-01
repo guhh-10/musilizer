@@ -7,7 +7,7 @@
 #include "model/play_history.hpp"
 #include "model/playlist.hpp"
 #include "model/track.hpp"
-#include "model/persistence.hpp"
+#include "repository/persistence.hpp"
 #include "config.hpp"
 
 class Player{

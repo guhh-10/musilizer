@@ -3,7 +3,7 @@
 #include <exception>
 #include <iostream>
 
-#include "model/persistence.hpp"
+#include "repository/persistence.hpp"
 #include "model/library.hpp"
 #include "config.hpp"
 

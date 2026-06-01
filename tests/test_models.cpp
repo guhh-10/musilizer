@@ -18,7 +18,7 @@
 #include "model/library.hpp"
 #include "model/audio.hpp"
 #include "model/music_directory.hpp"
-#include "model/persistence.hpp"
+#include "repository/persistence.hpp"
 #include "model/play_history.hpp"
 #include "model/playlist.hpp"
 #include "model/queue.hpp"
