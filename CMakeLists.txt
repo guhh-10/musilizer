@@ -73,6 +73,7 @@ add_library(musilizer_core STATIC
     src/model/play_history.cpp
     src/repository/persistence.cpp
     src/controller/player.cpp
+    src/service/search.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
@@ -96,7 +97,16 @@ musilizer_set_warnings(${PROJECT_NAME})
 
 # Test executable
 
-add_executable(musilizer_tests tests/test_models.cpp)
+add_executable(musilizer_tests
+    tests/test_audio.cpp
+    tests/test_library.cpp
+    tests/test_music_directory.cpp
+    tests/test_persistence.cpp
+    tests/test_play_history.cpp
+    tests/test_playlist.cpp
+    tests/test_queue.cpp
+    tests/test_search.cpp
+)
 target_link_libraries(musilizer_tests PRIVATE musilizer_core Catch2::Catch2WithMain)
 musilizer_set_warnings(musilizer_tests)
 
