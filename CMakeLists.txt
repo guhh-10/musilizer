@@ -72,8 +72,9 @@ add_library(musilizer_core STATIC
     src/model/playlist.cpp
     src/model/play_history.cpp
     src/repository/persistence.cpp
-    src/controller/player.cpp
     src/service/search.cpp
+    src/controller/player.cpp
+    src/controller/search_controller.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
