@@ -75,6 +75,8 @@ add_library(musilizer_core STATIC
     src/service/search.cpp
     src/controller/player.cpp
     src/controller/search_controller.cpp
+    src/service/genre_graph.cpp
+    src/service/recommender.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
@@ -107,6 +109,7 @@ add_executable(musilizer_tests
     tests/test_playlist.cpp
     tests/test_queue.cpp
     tests/test_search.cpp
+    tests/test_recommender.cpp
 )
 target_link_libraries(musilizer_tests PRIVATE musilizer_core Catch2::Catch2WithMain)
 musilizer_set_warnings(musilizer_tests)
