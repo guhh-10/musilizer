@@ -92,3 +92,130 @@ TEST_CASE("MusicDirectory recurses into nested folders", "[music_directory]") {
 
     CHECK(lib.findByPath(nested) != nullptr);
 }
+
+TEST_CASE("MusicDirectory reads single genre", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_single");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "single.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    tagSampleMp3Genre(mp3, "Rock");
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    REQUIRE(track->getGenres().size() == 1);
+    CHECK(track->getGenres().front() == "Rock");
+}
+
+TEST_CASE("MusicDirectory splits multiple genres on semicolon", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_multi");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "multi.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    tagSampleMp3Genre(mp3, "Rock;Alternative;Indie");
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    REQUIRE(track->getGenres().size() == 3);
+    CHECK(track->getGenres()[0] == "Rock");
+    CHECK(track->getGenres()[1] == "Alternative");
+    CHECK(track->getGenres()[2] == "Indie");
+}
+
+TEST_CASE("MusicDirectory trims whitespace around genre tokens", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_trim");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "trim.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    tagSampleMp3Genre(mp3, "  Rock ; Alternative ;  Indie  ");
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    REQUIRE(track->getGenres().size() == 3);
+    CHECK(track->getGenres()[0] == "Rock");
+    CHECK(track->getGenres()[1] == "Alternative");
+    CHECK(track->getGenres()[2] == "Indie");
+}
+
+TEST_CASE("MusicDirectory drops empty genre tokens from stray delimiters", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_empty_token");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "stray.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    tagSampleMp3Genre(mp3, "Rock;;Jazz;");
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    // Only "Rock" and "Jazz" — two empty tokens are discarded.
+    REQUIRE(track->getGenres().size() == 2);
+    CHECK(track->getGenres()[0] == "Rock");
+    CHECK(track->getGenres()[1] == "Jazz");
+}
+
+TEST_CASE("MusicDirectory produces empty genre list when TCON absent", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_absent");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "notag.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    // Deliberately no tagSampleMp3Genre call.
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    CHECK(track->getGenres().empty());
+}
+
+TEST_CASE("MusicDirectory preserves genre casing as stored in tag", "[music_directory][genre]") {
+    fs::path root = makeTempRoot("musilizer_music_dir_genre_case");
+    ScopedConfigRoot scoped(root);
+
+    fs::create_directories(config::MUSIC_DIR);
+    fs::path mp3 = config::MUSIC_DIR / "case.mp3";
+    writeSampleMp3(mp3);
+    tagSampleMp3(mp3, "Title", "Artist");
+    tagSampleMp3Genre(mp3, "Trip-Hop;R&B");
+
+    Library lib;
+    MusicDirectory dir;
+    dir.initialize(lib);
+
+    const Track* track = lib.findByPath(mp3);
+    REQUIRE(track != nullptr);
+    REQUIRE(track->getGenres().size() == 2);
+    // Casing must be preserved — normalisation happens inside Search/Recommender.
+    CHECK(track->getGenres()[0] == "Trip-Hop");
+    CHECK(track->getGenres()[1] == "R&B");
+}

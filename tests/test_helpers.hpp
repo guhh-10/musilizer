@@ -9,12 +9,14 @@
 #include <mpegfile.h>
 #include <id3v2tag.h>
 #include <id3v2frame.h>
+#include <textidentificationframe.h>
 #include <audioproperties.h>
 
 #include "config.hpp"
 #include "model/track.hpp"
 
 namespace test_helpers {
+
 struct ScopedConfigRoot {
     fs::path old_root;
     fs::path old_music;
@@ -24,22 +26,22 @@ struct ScopedConfigRoot {
     fs::path old_history;
 
     explicit ScopedConfigRoot(const fs::path& root) {
-        old_root = config::ROOT;
-        old_music = config::MUSIC_DIR;
-        old_data = config::DATA_DIR;
+        old_root     = config::ROOT;
+        old_music    = config::MUSIC_DIR;
+        old_data     = config::DATA_DIR;
         old_playlist = config::PLAYLIST;
-        old_setting = config::SETTING;
-        old_history = config::HISTORY;
+        old_setting  = config::SETTING;
+        old_history  = config::HISTORY;
         config::init(root);
     }
 
     ~ScopedConfigRoot() {
-        config::ROOT = old_root;
-        config::MUSIC_DIR = old_music;
+        config::ROOT     = old_root;
+        config::MUSIC_DIR= old_music;
         config::DATA_DIR = old_data;
         config::PLAYLIST = old_playlist;
-        config::SETTING = old_setting;
-        config::HISTORY = old_history;
+        config::SETTING  = old_setting;
+        config::HISTORY  = old_history;
     }
 };
 
@@ -57,12 +59,10 @@ inline fs::path makeTempRoot(const std::string& name) {
 inline fs::path findFixture(const fs::path& relative) {
     fs::path cwd = fs::current_path();
     fs::path direct = cwd / relative;
-    if (fs::exists(direct))
-        return direct;
+    if (fs::exists(direct)) return direct;
 
     fs::path parent = cwd.parent_path() / relative;
-    if (fs::exists(parent))
-        return parent;
+    if (fs::exists(parent)) return parent;
 
     return {};
 }
@@ -83,10 +83,13 @@ inline void writeSampleMp3(const fs::path& path, std::size_t frameCount = 39) {
     frame[3] = 0x64;
 
     for (std::size_t i = 0; i < frameCount; ++i)
-        out.write(reinterpret_cast<const char*>(frame.data()), static_cast<std::streamsize>(frame.size()));
+        out.write(reinterpret_cast<const char*>(frame.data()),
+                  static_cast<std::streamsize>(frame.size()));
 }
 
-inline void tagSampleMp3(const fs::path& path, const std::string& title, const std::string& artist) {
+inline void tagSampleMp3(const fs::path& path,
+                          const std::string& title,
+                          const std::string& artist) {
     TagLib::MPEG::File file(path.string().c_str());
     REQUIRE(file.isValid());
 
@@ -97,4 +100,26 @@ inline void tagSampleMp3(const fs::path& path, const std::string& title, const s
     tag->setArtist(artist);
     REQUIRE(file.save());
 }
+
+// Write a TCON frame with `genreValue` as-is (caller controls the raw string,
+// including semicolons, leading/trailing whitespace, etc.).
+inline void tagSampleMp3Genre(const fs::path& path,
+                               const std::string& genreValue) {
+    TagLib::MPEG::File file(path.string().c_str());
+    REQUIRE(file.isValid());
+
+    TagLib::ID3v2::Tag* tag = file.ID3v2Tag(true);
+    REQUIRE(tag != nullptr);
+
+    // Remove any existing TCON frames before writing the new one.
+    tag->removeFrames("TCON");
+
+    auto* frame = new TagLib::ID3v2::TextIdentificationFrame(
+        "TCON", TagLib::String::UTF8);
+    frame->setText(TagLib::String(genreValue, TagLib::String::UTF8));
+    tag->addFrame(frame);
+
+    REQUIRE(file.save());
+}
+
 } // namespace test_helpers
