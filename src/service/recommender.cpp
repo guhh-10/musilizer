@@ -63,12 +63,12 @@ std::vector<RecommendResult> Recommender::recommendByGenres(
 
     // Check if anything scored above zero
     bool anyScored = std::any_of(scored.begin(), scored.end(),
-        [](const RecommendResult& r){ return r.score > 0.0f; });
+        [](const RecommendResult& r) { return r.score > 0.0f; });
 
     if (anyScored) {
         // Remove zero-score entries
         scored.erase(std::remove_if(scored.begin(), scored.end(),
-            [](const RecommendResult& r){ return r.score == 0.0f; }),
+            [](const RecommendResult& r) { return r.score == 0.0f; }),
             scored.end());
     }
     // If nothing scored, return all (unranked fallback) – caller sees score 0.
