@@ -1,12 +1,11 @@
 #include <algorithm>
 
 #include "service/search.hpp"
+#include "utils/string_utils.hpp"
 
-// is UB, and non-ASCII artist names (e.g. "Björk") will hit that path.
+// We use utils::toLower to avoid UB with non-ASCII characters
 static auto lower = [](std::string s){
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
-    return s;
+    return utils::toLower(std::move(s));
 };
 
 std::vector<std::string> Search::tokenize(const std::string& s){
