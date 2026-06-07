@@ -29,8 +29,8 @@ class Recommender {
 
         const GenreGraph& graph() const;
 
-        // Return up to `limit` tracks from `lib` that are most similar to
-        // Tracks with score == 0.0f are omitted unless all candidates score 0
+        // Return up to `limit` tracks from `lib` that are most similar to `seed`.
+        // Tracks with score == 0.0f are omitted unless all candidates score 0.
         std::vector<RecommendResult> recommend(
             const Library&          lib,
             const Track&            seed,
@@ -45,6 +45,6 @@ class Recommender {
             const Track*                    exclude,       // may be nullptr
             std::size_t                     limit = 10) const;
 
-        // Factory: returns a GenreGraph seeded with reasonable cross-genre
+        // Factory: returns a GenreGraph seeded with reasonable cross-genre weights.
         static GenreGraph buildDefaultGraph();
 };

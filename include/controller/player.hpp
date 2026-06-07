@@ -10,7 +10,7 @@
 #include "repository/persistence.hpp"
 #include "config.hpp"
 
-class Player{
+class Player {
     private:
         Library&    lib_;
         Audio       audio_;
@@ -23,7 +23,7 @@ class Player{
     public:
         explicit Player(Library& lib);
 
-        //Playback
+        // Playback
         void play(const Track& t);
         void playPlaylist(const Playlist& p);
         void pause();

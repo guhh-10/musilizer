@@ -3,6 +3,7 @@
 
 #include "model/playlist.hpp"
 #include "model/play_history.hpp"
+#include "service/genre_graph_learner.hpp"
 
 namespace Persistence {
     void init();
@@ -12,4 +13,6 @@ namespace Persistence {
     std::vector<Playlist> loadPlaylists(const Library& lib);
     void saveHistory(const PlayHistory& history);
     void loadHistory(PlayHistory& history, const Library& lib);
+    void saveLearner(const GenreGraphLearner& learner);
+    void loadLearner(GenreGraphLearner& learner);
 }

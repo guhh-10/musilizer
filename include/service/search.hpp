@@ -7,18 +7,18 @@
 #include "model/library.hpp"
 #include "model/track.hpp"
 
-enum class SortField{ 
-    TITLE, 
-    ARTIST, 
-    DURATION 
+enum class SortField {
+    TITLE,
+    ARTIST,
+    DURATION
 };
 
-enum class SortOrder{ 
-    ASC, 
+enum class SortOrder {
+    ASC,
     DESC
 };
 
-struct SearchQuery{
+struct SearchQuery {
     std::string text;
     std::string artistFilter;
     int         minDuration = 0;
@@ -27,12 +27,12 @@ struct SearchQuery{
     SortOrder   sortOrder = SortOrder::ASC;
 };
 
-struct SearchResult{
+struct SearchResult {
     const Track* track;
     float        score;
 };
 
-class Search{
+class Search {
     private:
         std::map<std::string, std::set<fs::path>> title_index;
         std::map<std::string, std::set<fs::path>> artist_index;

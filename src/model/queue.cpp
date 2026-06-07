@@ -2,23 +2,23 @@
 
 #include "model/queue.hpp"
 
-void Queue::load(const std::vector<const Track*>& tracks){
+void Queue::load(const std::vector<const Track*>& tracks) {
     track_queue.clear();
     original_order.clear();
-    for(const Track* t : tracks){
+    for (const Track* t : tracks) {
         track_queue.push_back(t->getMusicPath());
         original_order.push_back(t->getMusicPath());
     }
 }
 
-std::optional<fs::path> Queue::next(){
-    if(track_queue.empty())
+std::optional<fs::path> Queue::next() {
+    if (track_queue.empty())
         return std::nullopt;
 
-    if(!hasNext()){
-        if(repeat){
+    if (!hasNext()) {
+        if (repeat) {
             track_queue.assign(original_order.begin(), original_order.end());
-            if(shuffle)
+            if (shuffle)
                 std::shuffle(track_queue.begin(), track_queue.end(),
                              std::mt19937{std::random_device{}()});
             return track_queue.front();
@@ -30,14 +30,14 @@ std::optional<fs::path> Queue::next(){
     return track_queue.front();
 }
 
-void Queue::setShuffle(bool enabled){
-    if(track_queue.empty()) {
+void Queue::setShuffle(bool enabled) {
+    if (track_queue.empty()) {
         shuffle = enabled;
         return;
     }
 
     shuffle = enabled;
-    if(shuffle){
+    if (shuffle) {
         original_order.assign(track_queue.begin(), track_queue.end());
         std::shuffle(track_queue.begin() + 1, track_queue.end(),
                      std::mt19937{std::random_device{}()});
@@ -45,17 +45,17 @@ void Queue::setShuffle(bool enabled){
         fs::path current = track_queue.front();
         track_queue.assign(original_order.begin(), original_order.end());
         auto it = std::find(track_queue.begin(), track_queue.end(), current);
-        if(it != track_queue.end())
+        if (it != track_queue.end())
             std::rotate(track_queue.begin(), it, track_queue.end());
     }
 }
 
-void Queue::setRepeat(bool enabled){
+void Queue::setRepeat(bool enabled) {
     repeat = enabled;
 }
 
-std::optional<fs::path> Queue::current() const{
-    if(track_queue.empty())
+std::optional<fs::path> Queue::current() const {
+    if (track_queue.empty())
         return std::nullopt;
     return track_queue.front();
 }
@@ -64,9 +64,9 @@ bool Queue::hasNext() const {
     return track_queue.size() > 1;
 }
 
-void Queue::addTrackToFront(const Track& t){
+void Queue::addTrackToFront(const Track& t) {
     fs::path path = t.getMusicPath();
-    if(track_queue.empty()){
+    if (track_queue.empty()) {
         track_queue.push_front(path);
         original_order.push_front(path);
     } else {
@@ -75,16 +75,16 @@ void Queue::addTrackToFront(const Track& t){
     }
 }
 
-void Queue::addTrackToBack(const Track& t){
+void Queue::addTrackToBack(const Track& t) {
     fs::path path = t.getMusicPath();
     track_queue.push_back(path);
     original_order.push_back(path);
 }
 
-bool Queue::isShuffle() const{
-    return shuffle; 
+bool Queue::isShuffle() const {
+    return shuffle;
 }
 
-bool Queue::isRepeat() const{
+bool Queue::isRepeat() const {
     return repeat;
 }

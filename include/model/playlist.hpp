@@ -7,7 +7,7 @@
 
 class Library;
 
-class Playlist{
+class Playlist {
     private:
         std::string           name;
         std::vector<fs::path> track_paths;   // was vector<string>

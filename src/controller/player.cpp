@@ -2,7 +2,7 @@
 
 #include "controller/player.hpp"
 
-void Player::loadTrack(const fs::path& path){
+void Player::loadTrack(const fs::path& path) {
     const Track* track = lib_.findByPath(path);
     if (!track) {
         std::cerr << "[Player] track not found in library: " << path << "\n";
@@ -16,24 +16,24 @@ void Player::loadTrack(const fs::path& path){
     }
 }
 
-Player::Player(Library& lib) : lib_(lib){}
+Player::Player(Library& lib) : lib_(lib) {}
 
-void Player::play(const Track& t){
+void Player::play(const Track& t) {
     loadTrack(t.getMusicPath());
 }
 
-void Player::playPlaylist(const Playlist& p){
+void Player::playPlaylist(const Playlist& p) {
     auto tracks = p.resolve(lib_);
     if (tracks.empty()) return;
     queue_.load(tracks);
     loadTrack(queue_.current().value());
 }
 
-void Player::pause(){
+void Player::pause() {
     audio_.pause();
 }
 
-void Player::resume(){
+void Player::resume() {
     try {
         audio_.play();
     } catch (const std::exception& e) {
@@ -41,41 +41,41 @@ void Player::resume(){
     }
 }
 
-void Player::next(){
+void Player::next() {
     auto path = queue_.next();
     if (path) loadTrack(*path);
 }
 
-void Player::previous(){
+void Player::previous() {
     auto path = history_.back();
     if (path) audio_.load(*path);
 }
 
-void Player::seek(float seconds){
+void Player::seek(float seconds) {
     audio_.seek(seconds);
 }
 
-void Player::setVolume(float v){
+void Player::setVolume(float v) {
     audio_.setVolume(v);
 }
 
-void Player::queueNext(const Track& t){
+void Player::queueNext(const Track& t) {
     queue_.addTrackToFront(t);
 }
 
-void Player::queueLast(const Track& t){
+void Player::queueLast(const Track& t) {
     queue_.addTrackToBack(t);
 }
 
-void Player::setShuffle(bool enabled){
+void Player::setShuffle(bool enabled) {
     queue_.setShuffle(enabled);
 }
 
-void Player::setRepeat(bool enabled){
+void Player::setRepeat(bool enabled) {
     queue_.setRepeat(enabled);
 }
 
-void Player::loadState(){
+void Player::loadState() {
     float volume;
     bool shuffle, repeat;
     Persistence::loadSettings(volume, shuffle, repeat);
@@ -87,33 +87,33 @@ void Player::loadState(){
     Persistence::loadHistory(history_, lib_);
 }
 
-void Player::saveState(){
+void Player::saveState() {
     Persistence::saveSettings(audio_.getVolume(), queue_.isShuffle(), queue_.isRepeat());
     Persistence::savePlaylists(playlists_);
     Persistence::saveHistory(history_);
 }
 
-void Player::update(){
+void Player::update() {
     if (audio_.hasTrackEnded()) {
         audio_.resetTrackEnded();
         next();
     }
 }
 
-const Track* Player::currentTrack() const{
+const Track* Player::currentTrack() const {
     auto path = queue_.current();
     if (!path) return nullptr;
     return lib_.findByPath(*path);
 }
 
-float Player::volume() const{
+float Player::volume() const {
     return audio_.getVolume();
 }
 
-bool Player::isShuffle() const{
+bool Player::isShuffle() const {
     return queue_.isShuffle();
 }
 
-bool Player::isRepeat() const{
+bool Player::isRepeat() const {
     return queue_.isRepeat();
 }

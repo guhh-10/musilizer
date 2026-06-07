@@ -4,7 +4,7 @@
 
 #include "config.hpp"
 
-class Track{
+class Track {
     private:
         std::vector<std::string> artists;
         std::vector<std::string> genres;
@@ -28,6 +28,6 @@ class Track{
         const std::vector<std::string>& getArtists()  const { return artists; }
         const std::vector<std::string>& getGenres()   const { return genres; }
         const std::string&              getTitle()    const { return title; }
-        const fs::path&                 getMusicPath()const { return music_path; }
+        const fs::path&                 getMusicPath() const { return music_path; }
         int                             getDuration() const { return total_duration; }
 };

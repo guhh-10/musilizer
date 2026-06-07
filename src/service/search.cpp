@@ -22,7 +22,7 @@ std::vector<std::string> Search::tokenize(const std::string& s) {
     return tokens;
 }
 
-float Search::scoreTrack(const Track& t, const std::string& lowerText) const{
+float Search::scoreTrack(const Track& t, const std::string& lowerText) const {
     if (lowerText.empty()) return 1.0f;
  
     const std::string title = lower(t.getTitle());
@@ -56,7 +56,7 @@ void Search::rebuild(const Library& lib) {
     }
 }
 
-std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q) const{
+std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q) const {
     const std::string lowerText = lower(q.text);
  
     // 1. candidate set from the index
@@ -92,7 +92,7 @@ std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q
                 ++rit;
             }
         }
-    } else{
+    } else {
         for (const auto& [path, track] : lib.getTracks())
             candidates.insert(track.getMusicPath());
     }
@@ -136,7 +136,7 @@ std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q
                 return q.sortOrder == SortOrder::ASC ? ia < ib : ia > ib;
             };
  
-            switch(q.sortBy) {
+            switch (q.sortBy) {
                 case SortField::TITLE:
                     return cmpStr(lower(a.track->getTitle()),
                                   lower(b.track->getTitle()));
@@ -156,7 +156,7 @@ std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q
     return results;
 }
 
-std::vector<std::string> Search::allArtists() const{
+std::vector<std::string> Search::allArtists() const {
     std::vector<std::string> out;
     out.reserve(artist_index.size());
     for (const auto& [artist, _] : artist_index)

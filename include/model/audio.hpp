@@ -5,7 +5,7 @@
 
 #include "config.hpp"
 
-class Audio{
+class Audio {
     private:
         ma_device   device;
         mutable ma_decoder decoder;

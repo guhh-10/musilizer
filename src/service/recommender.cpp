@@ -1,9 +1,7 @@
 #include <algorithm>
-#include <cctype>
 
 #include "service/recommender.hpp"
 #include "utils/string_utils.hpp"
-
 
 // Recommender
 

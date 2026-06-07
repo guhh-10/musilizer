@@ -8,7 +8,7 @@
 #include "config.hpp"
 #include "model/track.hpp"
 
-class Queue{
+class Queue {
     private:
         std::deque<fs::path> track_queue;
         std::deque<fs::path> original_order;

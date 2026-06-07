@@ -10,6 +10,7 @@ namespace config {
     inline fs::path PLAYLIST;
     inline fs::path SETTING;
     inline fs::path HISTORY;
+    inline fs::path LEARNER;
 
     inline void init(const fs::path& binaryDir) {
         ROOT      = binaryDir;
@@ -18,6 +19,7 @@ namespace config {
         PLAYLIST  = DATA_DIR / "playlist.json";
         SETTING   = DATA_DIR / "setting.json";
         HISTORY   = DATA_DIR / "history.json";
+        LEARNER   = DATA_DIR / "learner.json";
     }
 
     inline constexpr int MAX_HISTORY = 50;

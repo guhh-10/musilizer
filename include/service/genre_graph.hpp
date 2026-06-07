@@ -4,7 +4,7 @@
 #include <vector>
 
 // Weights are in [0.0f, 1.0f].
-class GenreGraph{
+class GenreGraph {
     private:
         // adj_[from][to] = weight
         std::unordered_map<std::string,
@@ -21,5 +21,4 @@ class GenreGraph{
         std::vector<std::string> nodes() const;
 
         void clear();
-
 };
