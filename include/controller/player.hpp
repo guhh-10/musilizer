@@ -18,15 +18,19 @@ class Player {
         Queue       queue_;
         PlayHistory history_;
         std::vector<Playlist> playlists_;
-        GenreGraphLearner learner_;   // owns counts + prior
+        GenreGraphLearner learner_;
         Recommender       recommender_;
- 
+
         const Track* nowPlaying_  = nullptr;
-        bool         trackSkipped_ = false;  // set by manual next()/previous()
- 
+
+        // Low-level: load audio + update nowPlaying_. Never touches history or
+        // the queue. Returns true on success.
+        bool loadAudio(const fs::path& path);
+
+        // High-level: loadAudio + push to history. Used for forward navigation.
         void loadTrack(const fs::path& path);
- 
-        // Record a transition observation and refresh the recommender graph.
+
+        // Record a genre transition and refresh the recommender graph.
         void observeTransition(const Track* prev,
                                const Track* next,
                                bool         skipped);
@@ -55,7 +59,7 @@ class Player {
         void loadState();
 
         // Called on a tick / event loop
-        void update();   // checks audio.hasTrackEnded(), advances queue
+        void update();
 
         // Read state for the UI
         const Track* currentTrack() const;
@@ -63,7 +67,7 @@ class Player {
         bool         isShuffle()    const;
         bool         isRepeat()     const;
 
-                // Recommendation
+        // Recommendation — uses nowPlaying_, not the queue cursor
         std::vector<RecommendResult> recommend(std::size_t limit = 10) const;
         const GenreGraphLearner& learner() const { return learner_; }
 };
