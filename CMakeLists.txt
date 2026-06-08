@@ -144,6 +144,9 @@ target_link_libraries(musilizer_ui PUBLIC
 # ImGui uses a lot of old-style casts and other things that trip -Werror.
 # We own musilizer_ui but not imgui itself, so set warnings only on our target.
 musilizer_set_warnings(musilizer_ui)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(musilizer_ui PRIVATE -Wno-unused-private-field)
+endif()
 
 # Main executable
 
