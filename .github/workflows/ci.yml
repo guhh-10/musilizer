@@ -28,7 +28,8 @@ jobs:
             libxi-dev \
             libxinerama-dev \
             libxxf86vm-dev \
-            libxss-dev
+            libxss-dev \
+            libxtst-dev
             
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
