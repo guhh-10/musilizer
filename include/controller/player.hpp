@@ -8,6 +8,7 @@
 #include "model/playlist.hpp"
 #include "model/track.hpp"
 #include "repository/persistence.hpp"
+#include "service/recommender.hpp"
 #include "config.hpp"
 
 class Player {
@@ -17,8 +18,18 @@ class Player {
         Queue       queue_;
         PlayHistory history_;
         std::vector<Playlist> playlists_;
-
+        GenreGraphLearner learner_;   // owns counts + prior
+        Recommender       recommender_;
+ 
+        const Track* nowPlaying_  = nullptr;
+        bool         trackSkipped_ = false;  // set by manual next()/previous()
+ 
         void loadTrack(const fs::path& path);
+ 
+        // Record a transition observation and refresh the recommender graph.
+        void observeTransition(const Track* prev,
+                               const Track* next,
+                               bool         skipped);
 
     public:
         explicit Player(Library& lib);
@@ -51,4 +62,8 @@ class Player {
         float        volume()       const;
         bool         isShuffle()    const;
         bool         isRepeat()     const;
+
+                // Recommendation
+        std::vector<RecommendResult> recommend(std::size_t limit = 10) const;
+        const GenreGraphLearner& learner() const { return learner_; }
 };
