@@ -10,45 +10,69 @@
 using json = nlohmann::json;
 
 void Persistence::init() {
-    fs::create_directories(config::DATA_DIR);
+    try {
+        fs::create_directories(config::DATA_DIR);
 
-    auto writeDefault = [](const fs::path& path, const nlohmann::json& j) {
-        std::ofstream f(path);
-        if (!f.is_open()) {
-            std::cerr << "[Persistence::init] failed to create: " << path << "\n";
-            return;
+        auto writeDefault = [](const fs::path& path, const nlohmann::json& j) {
+            std::ofstream f(path);
+            if (!f.is_open()) {
+                std::cerr << "[Persistence::init] failed to create: " << path << "\n";
+                return;
+            }
+            f << j;
+            if (!f)
+                std::cerr << "[Persistence::init] write error: " << path << "\n";
+        };
+
+        // fs::exists() can throw on permission errors or malformed paths.
+        // Wrap each check individually so one failure doesn't block the others.
+
+        try {
+            if (!fs::exists(config::SETTING)) {
+                nlohmann::json j;
+                j["volume"]  = 1.0f;
+                j["shuffle"] = false;
+                j["repeat"]  = false;
+                writeDefault(config::SETTING, j);
+            }
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "[Persistence::init] could not check/create settings: "
+                      << e.what() << "\n";
         }
-        f << j;
-        if (!f)
-            std::cerr << "[Persistence::init] write error: " << path << "\n";
-    };
 
-    if (!fs::exists(config::SETTING)) {
-        nlohmann::json j;
-        j["volume"]  = 1.0f;
-        j["shuffle"] = false;
-        j["repeat"]  = false;
-        writeDefault(config::SETTING, j);
-    }
+        try {
+            if (!fs::exists(config::PLAYLIST)) {
+                nlohmann::json j;
+                j["playlists"] = nlohmann::json::array();
+                writeDefault(config::PLAYLIST, j);
+            }
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "[Persistence::init] could not check/create playlists: "
+                      << e.what() << "\n";
+        }
 
-    if (!fs::exists(config::PLAYLIST)) {
-        nlohmann::json j;
-        j["playlists"] = nlohmann::json::array();
-        writeDefault(config::PLAYLIST, j);
-    }
+        try {
+            if (!fs::exists(config::HISTORY)) {
+                nlohmann::json j;
+                j["history"] = nlohmann::json::array();
+                writeDefault(config::HISTORY, j);
+            }
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "[Persistence::init] could not check/create history: "
+                      << e.what() << "\n";
+        }
 
-    if (!fs::exists(config::HISTORY)) {
-        nlohmann::json j;
-        j["history"] = nlohmann::json::array();
-        writeDefault(config::HISTORY, j);
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "[Persistence::init] failed to create data directory: "
+                  << e.what() << "\n";
     }
 }
 
 void Persistence::saveSettings(float volume, bool shuffle, bool repeat) {
     nlohmann::json j;
-    j["volume"] = volume;
+    j["volume"]  = volume;
     j["shuffle"] = shuffle;
-    j["repeat"] = repeat;
+    j["repeat"]  = repeat;
     std::ofstream f(config::SETTING);
     if (!f.is_open()) {
         std::cerr << "[Persistence::saveSettings] failed: cannot open settings file for write\n";
@@ -81,7 +105,6 @@ void Persistence::savePlaylists(const std::vector<Playlist>& playlists) {
     for (const Playlist& p : playlists) {
         nlohmann::json entry;
         entry["name"] = p.getName();
-        // convert to string only here, at the serialisation boundary
         std::vector<std::string> pathStrings;
         for (const fs::path& path : p.getPlaylistTracks())
             pathStrings.push_back(path.string());
@@ -145,20 +168,21 @@ void Persistence::loadHistory(PlayHistory& history, const Library& lib) {
             if (t) history.push(*t);
         }
     } catch (const std::exception& e) {
-        std::cerr << "[Persistence::loadHistory] failed: " << e.what() << " — starting with empty history\n";
+        std::cerr << "[Persistence::loadHistory] failed: " << e.what()
+                  << " — starting with empty history\n";
     }
 }
 
 void Persistence::saveLearner(const GenreGraphLearner& learner) {
     nlohmann::json j;
     j["observed"] = nlohmann::json::object();
- 
+
     for (const auto& [from, tos] : learner.observedCounts()) {
         j["observed"][from] = nlohmann::json::object();
         for (const auto& [to, count] : tos)
             j["observed"][from][to] = count;
     }
- 
+
     std::ofstream f(config::LEARNER);
     if (!f.is_open()) {
         std::cerr << "[Persistence::saveLearner] failed: cannot open learner file for write\n";
@@ -173,14 +197,14 @@ void Persistence::loadLearner(GenreGraphLearner& learner) {
     try {
         std::ifstream f(config::LEARNER);
         if (!f.is_open()) return; // first run — nothing to load, prior is enough
- 
+
         nlohmann::json j = nlohmann::json::parse(f);
- 
+
         GenreGraphLearner::CountTable counts;
         for (const auto& [from, tos] : j.at("observed").items())
             for (const auto& [to, count] : tos.items())
                 counts[from][to] = count.get<float>();
- 
+
         learner.setObservedCounts(std::move(counts));
     } catch (const std::exception& e) {
         std::cerr << "[Persistence::loadLearner] failed: " << e.what()

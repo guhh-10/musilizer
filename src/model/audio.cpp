@@ -7,12 +7,12 @@
 #include "model/audio.hpp"
 
 Audio::Audio() {
-    ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    config.playback.format  = ma_format_f32;
+    ma_device_config config  = ma_device_config_init(ma_device_type_playback);
+    config.playback.format   = ma_format_f32;
     config.playback.channels = 2;
-    config.sampleRate       = 48000;
-    config.dataCallback     = Audio::dataCallback;
-    config.pUserData        = this;
+    config.sampleRate        = 48000;
+    config.dataCallback      = Audio::dataCallback;
+    config.pUserData         = this;
 
     ma_result result = ma_device_init(NULL, &config, &device);
     if (result != MA_SUCCESS)
@@ -44,13 +44,13 @@ void Audio::dataCallback(ma_device* device, void* output, const void* input, ma_
         memset(output, 0, frameCount * 2 * sizeof(float));
         return;
     }
-    
+
     ma_uint64 frameRead;
     ma_decoder_read_pcm_frames(&self->decoder, output, frameCount, &frameRead);
 
     if (frameRead < frameCount) {
-        size_t bytesRead    = frameRead * 2 * sizeof(float);
-        size_t bytesTotal   = frameCount * 2 * sizeof(float);
+        size_t bytesRead  = frameRead * 2 * sizeof(float);
+        size_t bytesTotal = frameCount * 2 * sizeof(float);
         memset((char*)output + bytesRead, 0, bytesTotal - bytesRead);
         self->track_ended.store(true);
     }
@@ -59,7 +59,7 @@ void Audio::dataCallback(ma_device* device, void* output, const void* input, ma_
 }
 
 void Audio::fadeOut() {
-    float vol = user_volume.load();
+    float vol  = user_volume.load();
     float step = vol / 10.0f;
     float volume = vol;
     for (int i = 0; i < 10; i++) {
@@ -71,7 +71,7 @@ void Audio::fadeOut() {
 
 void Audio::fadeIn() {
     float target = user_volume.load();
-    float step = target / 10.0f;
+    float step   = target / 10.0f;
     float volume = 0.0f;
     for (int i = 0; i < 10; i++) {
         volume += step;
@@ -90,6 +90,8 @@ void Audio::resetTrackEnded() {
 }
 
 void Audio::load(const fs::path& music_path) {
+    track_ended.store(false);
+
     if (decoder_initialized.load()) {
         fadeOut();
         ma_device_stop(&device);
@@ -134,10 +136,10 @@ void Audio::seek(float second) {
     if (!decoder_initialized.load()) return;
     seeking.store(true);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    
+
     {
         std::lock_guard<std::mutex> lock(decoder_mutex);
-        ma_uint64 frame = (ma_uint64)(second * decoder.outputSampleRate);
+        ma_uint64 frame  = (ma_uint64)(second * decoder.outputSampleRate);
         ma_result result = ma_decoder_seek_to_pcm_frame(&decoder, frame);
         if (result != MA_SUCCESS)
             std::cerr << "[Audio::seek] failed: " << ma_result_description(result) << "\n";

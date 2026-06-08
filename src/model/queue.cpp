@@ -16,14 +16,15 @@ std::optional<fs::path> Queue::next() {
         return std::nullopt;
 
     if (!hasNext()) {
-        if (repeat) {
-            track_queue.assign(original_order.begin(), original_order.end());
-            if (shuffle)
-                std::shuffle(track_queue.begin(), track_queue.end(),
-                             std::mt19937{std::random_device{}()});
-            return track_queue.front();
-        }
-        return std::nullopt;
+        if (!repeat)
+            return std::nullopt;
+
+        track_queue.assign(original_order.begin(), original_order.end());
+        if (shuffle)
+            std::shuffle(track_queue.begin(), track_queue.end(),
+                         std::mt19937{std::random_device{}()});
+
+        return track_queue.front();
     }
 
     track_queue.pop_front();

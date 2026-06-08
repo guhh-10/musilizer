@@ -2,7 +2,7 @@
 #include "config.hpp"
 
 void PlayHistory::push(const Track& t) {
-    if (cursor < static_cast<int>(history.size()) - 1)
+    if (cursor + 1 < static_cast<int>(history.size()))
         history.erase(history.begin() + cursor + 1, history.end());
 
     history.push_back(t.getMusicPath());
