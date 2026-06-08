@@ -12,8 +12,8 @@ namespace config {
     inline fs::path HISTORY;
     inline fs::path LEARNER;
 
-    inline void init(const fs::path& binaryDir) {
-        ROOT      = binaryDir;
+    inline void init(const fs::path& projectRootDir) {
+        ROOT      = projectRootDir;
         MUSIC_DIR = ROOT / "music";
         DATA_DIR  = ROOT / "data";
         PLAYLIST  = DATA_DIR / "playlist.json";

@@ -37,7 +37,21 @@ FetchContent_Declare(
     GIT_SHALLOW     TRUE
 )
 
-FetchContent_MakeAvailable(tag miniaudio json Catch2)
+FetchContent_Declare(
+    SDL3
+    GIT_REPOSITORY  https://github.com/libsdl-org/SDL.git
+    GIT_TAG         release-3.4.10
+    GIT_SHALLOW     TRUE
+)
+
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY  https://github.com/ocornut/imgui.git
+    GIT_TAG         v1.91.6
+    GIT_SHALLOW     TRUE
+)
+
+FetchContent_MakeAvailable(tag miniaudio json Catch2 SDL3 imgui)
 
 # TagLib include dirs
 
@@ -50,6 +64,22 @@ set(TAGLIB_INCLUDE_DIRS
     ${tag_SOURCE_DIR}/taglib/mpeg/id3v2/frames
     ${tag_SOURCE_DIR}/taglib/mpeg/id3v1
 )
+
+# ImGui (no CMakeLists — compile sources directly)
+
+add_library(imgui_lib STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
+)
+target_include_directories(imgui_lib PUBLIC
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+)
+target_link_libraries(imgui_lib PUBLIC SDL3::SDL3)
 
 # Warnings helper
 
@@ -93,10 +123,32 @@ target_link_libraries(musilizer_core PUBLIC
 
 musilizer_set_warnings(musilizer_core)
 
+# UI library
+
+add_library(musilizer_ui STATIC
+    src/ui/main_window.cpp
+    src/ui/player_panel.cpp
+    src/ui/library_panel.cpp
+    src/ui/playlist_panel.cpp
+)
+
+target_include_directories(musilizer_ui PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(musilizer_ui PUBLIC
+    musilizer_core
+    imgui_lib
+)
+
+# ImGui uses a lot of old-style casts and other things that trip -Werror.
+# We own musilizer_ui but not imgui itself, so set warnings only on our target.
+musilizer_set_warnings(musilizer_ui)
+
 # Main executable
 
 add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE musilizer_core)
+target_link_libraries(${PROJECT_NAME} PRIVATE musilizer_ui)
 musilizer_set_warnings(${PROJECT_NAME})
 
 # Test executable
@@ -130,3 +182,16 @@ catch_discover_tests(musilizer_tests
     TEST_SPEC "[audio]"
     PROPERTIES LABELS audio
 )
+
+# SDL3 DLL copy (Windows only)
+# Copies SDL3.dll next to the executable after build so it runs in-place
+# without any manual deployment step during development.
+
+if(WIN32)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3>
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMENT "Copying SDL3.dll"
+    )
+endif()
