@@ -90,12 +90,21 @@ void Audio::resetTrackEnded() {
 }
 
 void Audio::load(const fs::path& music_path) {
-    track_ended.store(false);
+    // 1. Capture the ended state before doing anything
+    bool ended_naturally = track_ended.load();
 
     if (decoder_initialized.load()) {
-        fadeOut();
+        // 2. Only fade out if we are actively interrupting a song.
+        // Fading out silence is pointless and leaves the callback running.
+        if (!ended_naturally) {
+            fadeOut();
+        }
         ma_device_stop(&device);
     }
+
+    // 3. Reset the flag HERE, safely after the device is stopped.
+    // This prevents residual callbacks from resurrecting the flag!
+    track_ended.store(false);
 
     {
         std::lock_guard<std::mutex> lock(decoder_mutex);

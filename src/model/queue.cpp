@@ -1,4 +1,6 @@
 #include <deque>
+#include <algorithm>
+#include <random>
 
 #include "model/queue.hpp"
 
@@ -15,19 +17,28 @@ std::optional<fs::path> Queue::next() {
     if (track_queue.empty())
         return std::nullopt;
 
-    if (!hasNext()) {
-        if (!repeat)
-            return std::nullopt;
+    // Pop the track that just completed playing
+    track_queue.pop_front();
 
+    // If the active playback queue is now empty
+    if (track_queue.empty()) {
+        if (!repeat) {
+            // Repeat is OFF: keep it clear so fallback recommenders can take over
+            return std::nullopt;
+        }
+
+        // Repeat is ON: Restock from our original order playlist blueprint
         track_queue.assign(original_order.begin(), original_order.end());
-        if (shuffle)
+        
+        if (shuffle && track_queue.size() > 1) {
             std::shuffle(track_queue.begin(), track_queue.end(),
                          std::mt19937{std::random_device{}()});
-
-        return track_queue.front();
+        }
     }
 
-    track_queue.pop_front();
+    if (track_queue.empty())
+        return std::nullopt;
+
     return track_queue.front();
 }
 
@@ -40,8 +51,11 @@ void Queue::setShuffle(bool enabled) {
     shuffle = enabled;
     if (shuffle) {
         original_order.assign(track_queue.begin(), track_queue.end());
-        std::shuffle(track_queue.begin() + 1, track_queue.end(),
-                     std::mt19937{std::random_device{}()});
+        // Mix everything behind the currently playing track
+        if (track_queue.size() > 1) {
+            std::shuffle(track_queue.begin() + 1, track_queue.end(),
+                         std::mt19937{std::random_device{}()});
+        }
     } else {
         fs::path current = track_queue.front();
         track_queue.assign(original_order.begin(), original_order.end());
