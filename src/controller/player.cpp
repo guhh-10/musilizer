@@ -198,8 +198,21 @@ void Player::removePlaylist(const std::string& name) {
     auto it = std::find_if(playlists_.begin(), playlists_.end(),
         [&](const Playlist& p) { return p.getName() == name; });
     if (it != playlists_.end()) {
+        if (nowPlaying_) {
+            const auto& paths = it->getPlaylistTracks();
+            bool inDying = std::find(paths.begin(), paths.end(),
+                               nowPlaying_->getMusicPath()) != paths.end();
+            if (inDying) {
+                audio_.pause();
+                nowPlaying_    = nullptr;
+                playbackState_ = PlaybackState::Stopped;
+                queue_.load({});
+            }
+        }
         playlists_.erase(it);
-        emitPlaylistsChanged();
+        emitTrackChanged();       // ← tell UI nowPlaying_ is null BEFORE
+        emitPlaybackStateChanged();
+        emitPlaylistsChanged();   // ← then update playlist panel
     }
 }
 
