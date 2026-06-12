@@ -45,8 +45,31 @@ void PlayerPanel::draw() {
 
     // ── Transport controls ────────────────────────────────────────────────────
 
-    const float centerX = ImGui::GetContentRegionAvail().x * 0.5f;
-    ImGui::SameLine(centerX - 80.0f);
+    // 1. HANDLE KEYBOARD SHORTCUTS
+    // Do NOT wrap this in (!io.WantCaptureKeyboard). 
+    // ImGui::Shortcut handles routing and focus prioritization automatically!
+    if (ImGui::Shortcut(ImGuiKey_Space, ImGuiInputFlags_RouteGlobal)) {
+        if (player_.playbackState() == PlaybackState::Playing) {
+            player_.pause();
+        } else {
+            player_.resume();
+        }
+    }
+
+    if (ImGui::Shortcut(ImGuiKey_LeftArrow, ImGuiInputFlags_RouteGlobal)) {
+        player_.previous();
+    }
+
+    if (ImGui::Shortcut(ImGuiKey_RightArrow, ImGuiInputFlags_RouteGlobal)) {
+        player_.next();
+    }
+
+
+    // 2. DRAW THE VISUAL BUTTONS
+    // Use SetCursorPosX instead of SameLine to absolute-center a group of elements
+    const float contentWidth = ImGui::GetContentRegionAvail().x;
+    const float buttonGroupWidth = 160.0f; // Approximate visual width of your 3 buttons
+    ImGui::SetCursorPosX((contentWidth - buttonGroupWidth) * 0.5f);
 
     if (ImGui::Button("  |<  ")) player_.previous();
     ImGui::SameLine();
