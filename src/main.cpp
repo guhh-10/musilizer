@@ -35,7 +35,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     }
 
     SDL_Window* window = SDL_CreateWindow(
-        "Musilizer", 1080, 680,
+        "Musilizer", 1440, 680,
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
     );
     if (!window) {
@@ -51,6 +51,8 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         SDL_Quit();
         return 1;
     }
+
+    SDL_SetWindowMinimumSize(window, 1440, 680);
 
     // ── ImGui init ────────────────────────────────────────────────────────────
 
