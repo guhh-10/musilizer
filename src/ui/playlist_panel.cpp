@@ -12,7 +12,6 @@ void PlaylistPanel::draw() {
 
     // 2. Draw Title Header
     ImGui::TextUnformatted("Playlists");
-    ImGui::Separator();
 
     // 3. Estimate how much space the bottom input section takes up 
     //    We explicitly add a 20-pixel safety margin to clear layout limits.
