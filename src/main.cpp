@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
+#include <IconsLucide.h>
 
 #include <iostream>
 
@@ -13,10 +14,26 @@
 #include "repository/persistence.hpp"
 #include "ui/main_window.hpp"
 
+static void InitFonts(const fs::path& exeDir) {
+    ImGuiIO& io = ImGui::GetIO();
+
+    fs::path uiFont = exeDir / "InterVariable.ttf";
+    io.Fonts->AddFontFromFileTTF(uiFont.string().c_str(), 16.0f);
+
+    static const ImWchar icons_ranges[] = { ICON_MIN_LC, ICON_MAX_16_LC, 0 };
+    ImFontConfig icons_config;
+    icons_config.MergeMode  = true;
+    icons_config.PixelSnapH = true;
+
+    fs::path iconFont = exeDir / "lucide.ttf";
+    io.Fonts->AddFontFromFileTTF(iconFont.string().c_str(), 13.0f, &icons_config, icons_ranges);
+}
+
 int main([[maybe_unused]] int argc, char* argv[]) {
     // ── Backend init ──────────────────────────────────────────────────────────
 
-    fs::path projectRootDir = fs::weakly_canonical(argv[0]).parent_path().parent_path();
+    fs::path exeDir = fs::weakly_canonical(argv[0]).parent_path();
+    fs::path projectRootDir = exeDir.parent_path();
     config::init(projectRootDir);
     Persistence::init();
 
@@ -63,6 +80,8 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     ImGui::StyleColorsDark();
+
+    InitFonts(exeDir);
 
     ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer3_Init(renderer);

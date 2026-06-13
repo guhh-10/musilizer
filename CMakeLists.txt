@@ -4,9 +4,18 @@ project(musilizer)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Dependencies
+# ==========================================
+# Dependencies (FetchContent)
+# ==========================================
 
 include(FetchContent)
+
+FetchContent_Declare(
+    IconFontCppHeader
+    GIT_REPOSITORY  https://github.com/juliettef/IconFontCppHeaders.git
+    GIT_TAG         210b5a399a64270674560d633638952d1e8d804d
+    GIT_SHALLOW     TRUE
+)
 
 FetchContent_Declare(
     tag
@@ -51,10 +60,9 @@ FetchContent_Declare(
     GIT_SHALLOW     TRUE
 )
 
-FetchContent_MakeAvailable(tag miniaudio json Catch2 SDL3 imgui)
+FetchContent_MakeAvailable(IconFontCppHeader tag miniaudio json Catch2 SDL3 imgui)
 
 # TagLib include dirs
-
 set(TAGLIB_INCLUDE_DIRS
     ${tag_BINARY_DIR}/taglib
     ${tag_SOURCE_DIR}/taglib
@@ -66,7 +74,6 @@ set(TAGLIB_INCLUDE_DIRS
 )
 
 # ImGui (no CMakeLists — compile sources directly)
-
 add_library(imgui_lib STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -81,7 +88,9 @@ target_include_directories(imgui_lib PUBLIC
 )
 target_link_libraries(imgui_lib PUBLIC SDL3::SDL3)
 
+# ==========================================
 # Warnings helper
+# ==========================================
 
 function(musilizer_set_warnings target)
     if(MSVC)
@@ -91,7 +100,9 @@ function(musilizer_set_warnings target)
     endif()
 endfunction()
 
+# ==========================================
 # Core library
+# ==========================================
 
 add_library(musilizer_core STATIC
     src/model/library.cpp
@@ -123,7 +134,9 @@ target_link_libraries(musilizer_core PUBLIC
 
 musilizer_set_warnings(musilizer_core)
 
+# ==========================================
 # UI library
+# ==========================================
 
 add_library(musilizer_ui STATIC
     src/ui/main_window.cpp
@@ -134,6 +147,7 @@ add_library(musilizer_ui STATIC
 
 target_include_directories(musilizer_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${iconfontcppheader_SOURCE_DIR}
 )
 
 target_link_libraries(musilizer_ui PUBLIC
@@ -148,13 +162,29 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(musilizer_ui PRIVATE -Wno-unused-private-field)
 endif()
 
+# ==========================================
 # Main executable
+# ==========================================
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE musilizer_ui)
+target_include_directories(${PROJECT_NAME} PRIVATE ${iconfontcppheader_SOURCE_DIR})
 musilizer_set_warnings(${PROJECT_NAME})
 
+# Deploy lucide.ttf next to the executable
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/fonts/lucide.ttf"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lucide.ttf"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/fonts/InterVariable.ttf"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/InterVariable.ttf"
+    COMMENT "Deploying fonts to build execution directory"
+)
+
+# ==========================================
 # Test executable
+# ==========================================
 
 add_executable(musilizer_tests
     tests/test_audio.cpp
@@ -172,7 +202,6 @@ target_link_libraries(musilizer_tests PRIVATE musilizer_core Catch2::Catch2WithM
 musilizer_set_warnings(musilizer_tests)
 
 # CTest / Catch2 test discovery
-
 enable_testing()
 include(CTest)
 include(Catch)
@@ -186,10 +215,11 @@ catch_discover_tests(musilizer_tests
     PROPERTIES LABELS audio
 )
 
-# SDL3 DLL copy (Windows only)
-# Copies SDL3.dll next to the executable after build so it runs in-place
-# without any manual deployment step during development.
+# ==========================================
+# OS Deployment Configurations (Post-Build)
+# ==========================================
 
+# SDL3 DLL copy (Windows only)
 if(WIN32)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

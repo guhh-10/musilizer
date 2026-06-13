@@ -46,23 +46,25 @@ void MainWindow::draw() {
     const float playlistW   = std::max(180.0f, totalW * 0.15f); 
     const float libraryW    = totalW - playlistW;
 
-    // ── Library panel (Increased X-axis) ──────────────────────────────────────
+    // ── Playlist panel (Now on the Left Side) ──────────────────────────
 
-    ImGui::SetNextWindowPos({0, 0});
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
-    ImGui::BeginChild("##library", {libraryW, contentH}, false);
-    libraryPanel_.draw();
-    ImGui::EndChild();
-    ImGui::PopStyleVar();
-
-    // ── Playlist panel (Slightly narrower sidebar) ──────────────────────────
-
-    ImGui::SetCursorPos({libraryW, 0});
+    // Start at the very left edge (X = 0)
+    ImGui::SetNextWindowPos({0, 0}); 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
     ImGui::BeginChild("##playlists", {playlistW, contentH}, false);
     playlistPanel_.draw();
     ImGui::EndChild();
     ImGui::PopStyleColor();
+
+    // ── Library panel (Now on the Right Side) ───────────────────────────────
+
+    // Shift the cursor to the right, past the playlist width
+    ImGui::SetCursorPos({playlistW, 0}); 
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+    ImGui::BeginChild("##library", {libraryW, contentH}, false);
+    libraryPanel_.draw();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
 
     // ── Player bar ────────────────────────────────────────────────────────────
 

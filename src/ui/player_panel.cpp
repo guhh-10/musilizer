@@ -1,4 +1,5 @@
 #include <imgui.h>
+#include <IconsLucide.h>
 #include <string>
 #include <cstdio>
 #include <algorithm>
@@ -75,7 +76,7 @@ void PlayerPanel::draw() {
     ImGui::SameLine();
 
     const bool playing = player_.playbackState() == PlaybackState::Playing;
-    if (ImGui::Button(playing ? "  ||  " : "  >  ")) {
+    if (ImGui::Button(playing ? ICON_LC_PAUSE : ICON_LC_PLAY)) {
         if (playing) player_.pause();
         else         player_.resume();
     }
