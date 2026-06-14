@@ -12,6 +12,7 @@ void PlaylistPanel::draw() {
 
     // 2. Draw Title Header
     ImGui::TextUnformatted("Playlists");
+    ImGui::Separator();
 
     // 3. Estimate how much space the bottom input section takes up 
     //    We explicitly add a 20-pixel safety margin to clear layout limits.
@@ -82,6 +83,7 @@ void PlaylistPanel::draw() {
     ImGui::SetNextItemWidth(calculatedInputWidth);
     
     // Draw the Input Text
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::InputTextWithHint("##newpl", "New playlist...",
                              newPlaylistName_, sizeof(newPlaylistName_));
 
@@ -101,6 +103,7 @@ void PlaylistPanel::draw() {
     if (ImGui::Button("Add", ImVec2(buttonWidth, 0.0f))) {
         shouldSubmit = true;
     }
+    ImGui::PopStyleVar();
 
     // Execute the addition if either action triggered it and the string isn't empty
     if (shouldSubmit && newPlaylistName_[0] != '\0') {
