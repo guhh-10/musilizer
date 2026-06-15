@@ -146,6 +146,7 @@ add_library(musilizer_ui STATIC
     src/ui/fonts.cpp
     src/ui/imgui_style.cpp
     src/ui/tab_panel.cpp
+    src/ui/imgui_widgets.cpp
 )
 
 target_include_directories(musilizer_ui PUBLIC
