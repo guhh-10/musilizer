@@ -143,6 +143,8 @@ add_library(musilizer_ui STATIC
     src/ui/player_panel.cpp
     src/ui/library_panel.cpp
     src/ui/playlist_panel.cpp
+    src/ui/fonts.cpp
+    src/ui/imgui_style.cpp
 )
 
 target_include_directories(musilizer_ui PUBLIC
@@ -179,6 +181,9 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/fonts/InterVariable.ttf"
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/InterVariable.ttf"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Inter-Bold.ttf"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Inter-Bold.ttf"   # ← add this
     COMMENT "Deploying fonts to build execution directory"
 )
 

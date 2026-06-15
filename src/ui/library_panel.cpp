@@ -22,11 +22,13 @@ void LibraryPanel::draw() {
     // ── Search bar ────────────────────────────────────────────────────────────
 
     ImGui::SetNextItemWidth(-1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     if (ImGui::InputTextWithHint("##search", "Search tracks, artists...",
                                   searchBuf_, sizeof(searchBuf_)))
     {
         runSearch();
     }
+    ImGui::PopStyleVar();
 
     ImGui::Spacing();
 
@@ -49,7 +51,7 @@ void LibraryPanel::draw() {
         ImGui::TableSetupColumn("Duration", ImGuiTableColumnFlags_WidthStretch, 15.0f);
 
         // 2. Render Headers
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::TableHeadersRow(); // Automatically prints "Title", "Artist", "Duration"
         ImGui::PopStyleColor();
 

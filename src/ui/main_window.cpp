@@ -48,32 +48,36 @@ void MainWindow::draw() {
 
     // ── Playlist panel (Now on the Left Side) ──────────────────────────
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
+
     // Start at the very left edge (X = 0)
     ImGui::SetNextWindowPos({0, 0}); 
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_PopupBg]);
+
     ImGui::BeginChild("##playlists", {playlistW, contentH}, false);
     playlistPanel_.draw();
     ImGui::EndChild();
-    ImGui::PopStyleColor();
+
+    ImGui::PopStyleColor(); // Pop the ChildBg
 
     // ── Library panel (Now on the Right Side) ───────────────────────────────
 
     // Shift the cursor to the right, past the playlist width
     ImGui::SetCursorPos({playlistW, 0}); 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
     ImGui::BeginChild("##library", {libraryW, contentH}, false);
     libraryPanel_.draw();
     ImGui::EndChild();
-    ImGui::PopStyleVar();
 
     // ── Player bar ────────────────────────────────────────────────────────────
 
     ImGui::SetCursorPos({0, contentH});
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.10f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_PopupBg]);
     ImGui::BeginChild("##player", {totalW, playerBarH}, false);
     playerPanel_.draw();
     ImGui::EndChild();
     ImGui::PopStyleColor();
+
+    ImGui::PopStyleVar();
 
     ImGui::End();
 }
