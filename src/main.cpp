@@ -56,8 +56,6 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_SetWindowMinimumSize(window, 920, 680);
-
     // ── ImGui init ────────────────────────────────────────────────────────────
 
     IMGUI_CHECKVERSION();
@@ -99,6 +97,11 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         ImGui::NewFrame();
 
         ui.draw();
+
+        // ── DEBUG TOOLS ───────────────────────────────────────────────────────
+        // This opens the built-in ImGui metrics debugger window overlay.
+        ImGui::ShowMetricsWindow(); 
+        // ──────────────────────────────────────────────────────────────────────
 
         // Render
         ImGui::Render();
