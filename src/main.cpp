@@ -39,7 +39,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     }
 
     SDL_Window* window = SDL_CreateWindow(
-        "Musilizer", 1440, 680,
+        "Musilizer", 920, 680,
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
     );
     if (!window) {
@@ -56,7 +56,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_SetWindowMinimumSize(window, 1440, 680);
+    SDL_SetWindowMinimumSize(window, 920, 680);
 
     // ── ImGui init ────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    SetupModernDarkStyle();
+    SetupMusicPlayerLightStyle();
 
     FontManager::init(exeDir.string());
 
