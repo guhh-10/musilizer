@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "ui/main_window.hpp"
+#include "ui/tab_panel.hpp"
 
 MainWindow::MainWindow(Player& player, SearchController& search)
     : player_(player)
@@ -15,7 +16,6 @@ void MainWindow::draw()
 {
     ImGuiIO& io = ImGui::GetIO();
 
-    // 1. Root canvas setup (Absolute size required here to bootstrap the viewport)
     ImGui::SetNextWindowPos({0, 0});
     ImGui::SetNextWindowSize(io.DisplaySize); 
     ImGui::SetNextWindowBgAlpha(1.0f);
@@ -28,7 +28,6 @@ void MainWindow::draw()
         ImGuiWindowFlags_NoCollapse          |
         ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    // We keep these two overrides because the root canvas MUST span edge-to-edge
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::Begin("##root", nullptr, rootFlags);
@@ -39,64 +38,57 @@ void MainWindow::draw()
     const float rightBottomH = 130.0f;
     const float tabBarH      = 36.0f;
 
-    // Grab the actual available height of our root canvas dynamically
     const float totalAvailableH = ImGui::GetContentRegionAvail().y;
     const float leftHalfH      = totalAvailableH / 2.0f;
 
-    // Fetch the explicit layout border color line value from your theme style
     ImVec4 borderColor = ImGui::GetStyle().Colors[ImGuiCol_Border]; 
 
     // --- LEFT COLUMN ---
-    // Force padding to 0 so nested edge cards look flush
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
     ImGui::PushStyleColor(ImGuiCol_ChildBg, borderColor);
-
-    // Keep border set to false since the filled background now creates the line natively
     ImGui::BeginChild("##left_col", {leftColW, 0.0f}, false, ImGuiWindowFlags_NoScrollbar);
-    
-    // Pop layout overrides immediately after establishing the context so inner cards revert to white
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
 
-    // Eliminate empty gaps between inner main cards
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-        
+
         // FEATURE 1: Now Playing / Controller Panel
         ImGui::BeginChild("##now_playing_card", {0.0f, leftHalfH}, true, ImGuiWindowFlags_NoScrollbar);
-        // TODO: Implement "Now Playing" artwork, track metadata, and mini playback controls
+        // TODO: now playing artwork, track metadata, mini playback controls
         ImGui::EndChild();
-        
-        // FEATURE 2: Tab Panel Parent Container
-        // Inject padding and spacing; must remain active until inner children are placed
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f));
 
+        // FEATURE 2: Tab Panel Container
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
+        // 1. Change the Y item spacing to 0.0f inside this container so widgets touch perfectly
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(2.0f, 2.0f)); 
         ImGui::BeginChild("##tab_panel", {0.0f, 0.0f}, true);
+
+            // 2. Strip border padding for the tab bar child window
             
-            // FEATURE 2A: Tab Bar (Navigation Header)
-            // Sits precisely 8px away from top, left, and right borders of the container panel
+            // FEATURE 2A: Tab Bar 
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_Header]);
+
             ImGui::BeginChild("##tab_bar", {0.0f, tabBarH}, true, ImGuiWindowFlags_NoScrollbar);
-            // TODO: Implement structural navigation tabs (e.g., Playlists, Queue, History)
+            tabPanel_.drawTabBar();
             ImGui::EndChild();
-            
-            // <-- ImGui dynamically injects your 6px vertical ItemSpacing gap directly here!
-            
-            // FEATURE 2B: Tab Content Viewport
-            // Sits precisely 8px away from bottom, left, and right borders of the container panel
-            ImGui::BeginChild("##tab_content", {0.0f, 0.0f}, true);
-            // TODO: Implement conditional layout swap based on active tab state
+
+            // 2. Pop the color immediately so it doesn't bleed into the Tab Content below
+            ImGui::PopStyleColor();
+
+            // FEATURE 2B: Tab Content
+            // NOTE: Also changed border flag to 'false' so it blends seamlessly into the parent container
+            ImGui::BeginChild("##tab_content", {0.0f, 0.0f}, false);
+            tabPanel_.drawTabContent();
             ImGui::EndChild();
 
         ImGui::EndChild(); // ##tab_panel
-
-        // Safe to pop now that both inner children have been placed
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(2); // Restores WindowPadding and ItemSpacing
 
     ImGui::PopStyleVar(); // Restore global item spacing
 
     ImGui::EndChild(); // ##left_col
 
-    ImGui::SameLine(0, 0); // Stitch columns together perfectly edge-to-edge horizontally
+    ImGui::SameLine(0, 0);
 
     // --- RIGHT COLUMN ---
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
@@ -106,19 +98,19 @@ void MainWindow::draw()
     ImGui::PopStyleVar();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-        
-        // FEATURE 3: Main Dashboard / Library Explorer
+
+        // FEATURE 3: Library Explorer
         ImGui::BeginChild("##library", {0.0f, -rightBottomH}, true);
-        // TODO: Implement grid view for music albums, track lists, and search queries
+        // TODO: grid view for albums, track lists, search queries
         ImGui::EndChild();
-        
-        // FEATURE 4: Primary Audio Controller & Waveform Visualization
+
+        // FEATURE 4: Audio Controller & Waveform
         ImGui::BeginChild("##waveform", {0.0f, 0.0f}, true, ImGuiWindowFlags_NoScrollbar);
-        // TODO: Implement interactive audio seek-bar, audio stream waveform visualization, volume sliders
+        // TODO: seek-bar, waveform visualization, volume sliders
         ImGui::EndChild();
 
     ImGui::PopStyleVar(); // Restore global item spacing
-        
+
     ImGui::EndChild(); // ##right_col
 
     ImGui::End(); // ##root
