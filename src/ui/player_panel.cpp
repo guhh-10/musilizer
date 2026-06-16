@@ -90,10 +90,10 @@ void PlayerPanel::drawPlayerZone() {
             if (ImGui::ItemAdd(bb, window->GetID("##track_timeline_static"))) 
             {
                 float centerY = (bb.Min.y + bb.Max.y) * 0.5f;
-                ImU32 text_color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+                ImU32 muted_color = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
 
                 // Draw Left Timestamp
-                window->DrawList->AddText(ImVec2(bb.Min.x, centerY - (left_text_size.y * 0.5f)), text_color, elapsed_fmt);
+                window->DrawList->AddText(ImVec2(bb.Min.x, centerY - (left_text_size.y * 0.5f)), muted_color, elapsed_fmt);
 
                 // Slider drawing
                 float slider_start_x = bb.Min.x + left_text_size.x + spacing_width;
@@ -103,7 +103,7 @@ void PlayerPanel::drawPlayerZone() {
 
                 // Draw Right Timestamp
                 float slider_end_x = slider_start_x + slider_bar_width;
-                window->DrawList->AddText(ImVec2(slider_end_x + spacing_width, centerY - (right_text_size.y * 0.5f)), text_color, total_fmt);
+                window->DrawList->AddText(ImVec2(slider_end_x + spacing_width, centerY - (right_text_size.y * 0.5f)), muted_color, total_fmt);
 
                 // Safe layout cursor restore point
                 window->DC.CursorPos = ImVec2(base_pos.x, bb.Max.y + style.ItemSpacing.y);
@@ -221,10 +221,10 @@ void PlayerPanel::drawPlayerZone() {
             if (ImGui::ItemAdd(bb, window->GetID("##volume_slider_zone"))) 
             {
                 float centerY = (bb.Min.y + bb.Max.y) * 0.5f;
-                ImU32 text_color = ImGui::GetColorU32(style.Colors[ImGuiCol_Text]);
+                ImU32 muted_color = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
 
                 // Render Volume Icon on the left
-                window->DrawList->AddText(ImVec2(bb.Min.x, centerY - (icon_size.y * 0.5f)), text_color, volume_icon);
+                window->DrawList->AddText(ImVec2(bb.Min.x, centerY - (icon_size.y * 0.5f)), muted_color, volume_icon);
 
                 // Align structural cursor position to the start of the slider track
                 float slider_start_x = bb.Min.x + icon_size.x + spacing_width;

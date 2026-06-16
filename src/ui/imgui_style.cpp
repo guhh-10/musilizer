@@ -31,8 +31,8 @@ void SetupMusicPlayerLightStyle() {
 
     // --- Palette ---
     ImVec4 surface    = ImVec4(1.00f, 1.00f, 1.00f, 1.00f); // #FFFFFF
-    ImVec4 surface2   = ImVec4(0.96f, 0.95f, 0.94f, 1.00f); // #F5F3EF
-    ImVec4 border     = ImVec4(0.91f, 0.90f, 0.88f, 1.00f); // #E8E6E0
+    ImVec4 surface2   = ImVec4(0.91f, 0.90f, 0.88f, 1.00f); // #E8E6E0 (swapped with border)
+    ImVec4 border     = ImVec4(0.96f, 0.95f, 0.94f, 1.00f); // #F5F3EF (swapped with surface2)
     ImVec4 text       = ImVec4(0.13f, 0.13f, 0.13f, 1.00f); // #212121 
     ImVec4 darkButton = ImVec4(0.13f, 0.13f, 0.13f, 1.00f); // #212121 (RENAMED: Main button fill state)
     ImVec4 muted      = ImVec4(0.55f, 0.55f, 0.55f, 1.00f); // #8C8C8C
@@ -55,7 +55,7 @@ void SetupMusicPlayerLightStyle() {
 
     // Frame backgrounds
     colors[ImGuiCol_FrameBg]              = surface2;
-    colors[ImGuiCol_FrameBgHovered]       = ImVec4(0.92f, 0.91f, 0.89f, 1.00f); 
+    colors[ImGuiCol_FrameBgHovered]       = ImVec4(0.88f, 0.87f, 0.85f, 1.00f); 
     colors[ImGuiCol_FrameBgActive]        = surface;                            
 
     // Title bar settings
@@ -85,6 +85,10 @@ void SetupMusicPlayerLightStyle() {
     colors[ImGuiCol_Header]               = accentBg;  
     colors[ImGuiCol_HeaderHovered]        = surface2;  
     colors[ImGuiCol_HeaderActive]         = accentBg;
+    
+    // Explicitly fallback tables to be transparent so they inherit parent WindowBg smoothly
+    colors[ImGuiCol_TableRowBg]           = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_TableRowBgAlt]        = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 
     // Structural Layout Separators
     colors[ImGuiCol_Separator]            = border;

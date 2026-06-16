@@ -256,3 +256,50 @@ bool SmoothScaleButton(const char* label, const ImVec2& size_arg, ButtonFont fon
 
     return pressed;
 }
+
+bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const ImVec2& size_arg = ImVec2(0, 0))
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return false;
+
+    ImGuiContext& g = *GImGui;
+    const ImGuiID id = window->GetID(label);
+
+    float& t = SmoothAnimState::GetRef(id);
+
+    // Color mixing (Border baseline vs. Slider/Accent color glow)
+    ImVec4 border_normal = g.Style.Colors[ImGuiCol_Border];
+    ImVec4 border_active = g.Style.Colors[ImGuiCol_SliderGrab]; 
+
+    ImVec4 mixed_border_col = ImVec4(
+        border_normal.x + (border_active.x - border_normal.x) * t,
+        border_normal.y + (border_active.y - border_normal.y) * t,
+        border_normal.z + (border_active.z - border_normal.z) * t,
+        border_normal.w + (border_active.w - border_normal.w) * t
+    );
+
+    ImGui::PushStyleColor(ImGuiCol_Border, mixed_border_col);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f); 
+
+    // Set layout sizing configuration if supplied explicitly
+    if (size_arg.x > 0.0f) ImGui::PushItemWidth(size_arg.x);
+
+    bool changed = ImGui::InputText(label, buf, buf_size);
+    
+    if (size_arg.x > 0.0f) ImGui::PopItemWidth();
+    ImGui::PopStyleVar();
+
+    // Smooth active/focused state tracking
+    bool is_active = ImGui::IsItemActive();
+    float animation_speed = 10.0f;
+    if (is_active) {
+        t += g.IO.DeltaTime * animation_speed;
+        if (t > 1.0f) t = 1.0f;
+    } else {
+        t -= g.IO.DeltaTime * animation_speed;
+        if (t < 0.0f) t = 0.0f;
+    }
+
+    ImGui::PopStyleColor(1);
+    return changed;
+}

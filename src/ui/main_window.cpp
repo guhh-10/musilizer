@@ -132,11 +132,16 @@ void MainWindow::draw()
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
 
+    // 1. Set the internal padding for the children here (e.g., 4.0f width, 4.0f height)
+    //    Adjust these numbers to whatever feels right for your design.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f)); 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
     // FEATURE 3: Library Explorer
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
     ImGui::BeginChild("##library", {0.0f, -rightBottomH}, true);
-    // TODO: grid view for albums, track lists, search queries
+    ImGui::PopStyleColor();
+    libraryPanel_.draw();
     ImGui::EndChild();
 
     // FEATURE 4: Audio Controller & Waveform
@@ -144,8 +149,7 @@ void MainWindow::draw()
     // TODO: seek-bar, waveform visualization, volume sliders
     ImGui::EndChild();
 
-    ImGui::PopStyleVar(); // Restore global item spacing
-
+    ImGui::PopStyleVar(2); // Pops both WindowPadding and ItemSpacing
     ImGui::EndChild(); // ##right_col
 
     ImGui::End(); // ##root

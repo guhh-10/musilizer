@@ -29,3 +29,4 @@ ImFont* resolveFont(ButtonFont font);
 bool SmoothRadioButton(const char* label, const ImVec2& size_arg = ImVec2(0, 0), ButtonFont font = ButtonFont::Regular, bool active = false);
 bool SmoothSliderBare(const char* str_id, float* v, float v_min, float v_max, float slider_bar_width);
 bool SmoothScaleButton(const char* label, const ImVec2& size_arg, ButtonFont font = ButtonFont::Icons);
+bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const ImVec2& size_arg);
