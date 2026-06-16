@@ -137,12 +137,53 @@ void MainWindow::draw()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f)); 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
-    // FEATURE 3: Library Explorer
+    // FEATURE 3: Library Explorer Container
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyle().Colors[ImGuiCol_WindowBg]);
+    
+    // --- FIX: Force parent panel padding to 0 horizontally to allow child elements to touch edges ---
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 4.0f)); 
     ImGui::BeginChild("##library", {0.0f, -rightBottomH}, true);
-    ImGui::PopStyleColor();
-    libraryPanel_.draw();
-    ImGui::EndChild();
+    ImGui::PopStyleVar(); // WindowPadding for ##library
+    ImGui::PopStyleColor(); // ChildBg for ##library
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+        
+        // Increased to 24.0f to match what was visually a 20px padding plus the previous 4px container padding
+        float padding = 24.0f; 
+
+        // --- CHILD WINDOW A: HEADER & SEARCH CONTAINER (Padded with Border Color BG) ---
+        float title_height = ImGui::GetTextLineHeightWithSpacing(); 
+        float input_height = ImGui::GetTextLineHeight() + style.FramePadding.y * 2.0f;
+        float search_h = title_height + input_height + (6.0f * 2.0f) + 12.0f; 
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_Border]);
+
+        if (ImGui::BeginChild("##search_and_header_container", ImVec2(0.0f, search_h), false, ImGuiWindowFlags_NoScrollbar)) 
+        {
+            libraryPanel_.drawSearchBar(padding);
+            ImGui::EndChild();
+        }
+        ImGui::PopStyleColor(); 
+        ImGui::PopStyleVar();  
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Spacing between search block and table
+
+        // --- CHILD WINDOW B: FLUSH TRACK TABLE CONTAINER ---
+        // This will now sit perfectly tight against the absolute left and right layout edges!
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_Border]);
+
+        if (ImGui::BeginChild("##library_table_container", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoScrollbar)) 
+        {
+            libraryPanel_.drawTableTrack();
+            ImGui::EndChild();
+        }
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+    }
+    ImGui::EndChild(); // ##library
 
     // FEATURE 4: Audio Controller & Waveform
     ImGui::BeginChild("##waveform", {0.0f, 0.0f}, true, ImGuiWindowFlags_NoScrollbar);

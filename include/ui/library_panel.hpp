@@ -16,7 +16,8 @@ class LibraryPanel {
     public:
         LibraryPanel(Player& player, SearchController& search);
 
-        void draw();
+        void drawSearchBar(float padding);
+        void drawTableTrack();
 
     private:
         Player&           player_;
@@ -26,5 +27,5 @@ class LibraryPanel {
         std::vector<SearchResult> results_;
 
         void runSearch();
-        void drawContextMenu(const Track& track);
+        void drawContextMenu(const std::string& title, const std::string& filename);
 };
