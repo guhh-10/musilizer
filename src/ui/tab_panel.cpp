@@ -44,7 +44,30 @@ void TabPanel::drawTabContent()
 
 void TabPanel::drawPlaylistContent()
 {
-    //TODO: Playlist using tree struct
+    // Replaced the old TODO comment with a mock tree layout structure
+    static const std::vector<PlaylistGroup> mock_playlists = {
+        {
+            "Synthwave Essentials", 
+            {
+                {"Laser Driver", "4:12"},
+                {"Outrun Horizon", "3:58"},
+                {"Grid Crawler", "5:04"}
+            }
+        },
+        {
+            "Chill Ambient Vibes", 
+            {
+                {"Liquid Ether", "6:21"},
+                {"Dust Particles", "2:45"}
+            }
+        },
+        {
+            "Empty Collection Focus", 
+            {}
+        }
+    };
+
+    StrictTwoTierPlaylistView("##playlist_tree_view", mock_playlists);
 }
 
 void TabPanel::drawQueueContent()

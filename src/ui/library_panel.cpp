@@ -314,6 +314,46 @@ void LibraryPanel::drawContextMenu(const std::string& title, const std::string& 
     ImGui::Separator();
 
     if (ImGui::BeginMenu("Add to Playlist")) {
+        // --- COMPACT & SLIM NEW PLAYLIST INPUT ---
+        static char new_playlist_buf[64] = "";
+        
+        ImGui::BeginGroup();
+        {
+            float input_width  = 120.0f; 
+            float button_width = 24.0f;
+
+            // 1. Decrease the y-axis height by scaling down vertical FramePadding
+            // This slims down both SmoothActiveInputText and SmoothScaleButton simultaneously
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 4.0f));
+
+            ImGui::Indent(ImGui::GetStyle().FramePadding.x);
+
+            // 2. Render the slimmed down Smooth Input Text field
+            if (SmoothActiveInputText("##NewPlaylistInput", new_playlist_buf, sizeof(new_playlist_buf), ImVec2(input_width, 0.0f))) {
+                // Handle value change if needed
+            }
+
+            ImGui::SameLine();
+
+            // 3. Render the adjacent slimmed down action button
+            if (SmoothScaleButton(ICON_LC_PLUS, ImVec2(button_width, 0.0f), ButtonFont::Icons)) {
+                if (strlen(new_playlist_buf) > 0) {
+                    // Action: Add new playlist to backend
+                    // e.g., player_.createNewPlaylist(new_playlist_buf);
+                    new_playlist_buf[0] = '\0'; // Clear buffer
+                }
+            }
+            
+            ImGui::Unindent(ImGui::GetStyle().FramePadding.x);
+
+            // Pop the style var to restore your standard 8.0f padding for the rest of the menu
+            ImGui::PopStyleVar(); 
+        }
+        ImGui::EndGroup();
+
+        ImGui::Separator(); 
+        // ───────────────────────────────────────────────────────────
+
         static const std::vector<std::string> mock_playlists = { "Favorites", "Chill Beats", "Driving Mix" };
         
         if (mock_playlists.empty()) {

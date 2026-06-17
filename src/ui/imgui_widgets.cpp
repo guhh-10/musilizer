@@ -1,5 +1,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <IconsLucide.h>
 
 #include "ui/imgui_widgets.hpp"
 
@@ -409,4 +410,276 @@ bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items
     ImGui::PopStyleVar();
  
     return any_clicked;
+}
+
+void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base_id, int group_idx, ImGuiID& global_active_id)
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    const ImGuiStyle& style = g.Style;
+    ImDrawList* draw_list = window->DrawList;
+
+    float row_height = 24.0f;
+    float header_height = 32.0f; // Increased header height (was 24.0f)
+    float animation_speed = 12.0f;
+    float content_width = ImGui::GetContentRegionAvail().x;
+
+    // 1. RENDER TOP-LEVEL PLAYLIST FOLDER (Full Row Highlight)
+    std::string folder_id_str = base_id + "_f_" + std::to_string(group_idx);
+    ImGuiID folder_id = window->GetID(folder_id_str.c_str());
+
+    float& f_hover = SmoothAnimState::GetRef(folder_id);
+    float& f_active = SmoothAnimState::GetRef(folder_id + 555);
+    bool& folder_open = *(bool*)&SmoothAnimState::GetRef(folder_id + 999);
+
+    ImVec2 folder_pos = window->DC.CursorPos;
+    ImRect folder_bb(folder_pos, ImVec2(folder_pos.x + content_width, folder_pos.y + header_height)); // Use header_height
+
+    ImGui::ItemSize(folder_bb, style.FramePadding.y);
+    if (ImGui::ItemAdd(folder_bb, folder_id)) 
+    {
+        bool hovered, held;
+        bool pressed = ImGui::ButtonBehavior(folder_bb, folder_id, &hovered, &held);
+
+        if (pressed) {
+            global_active_id = folder_id; 
+            folder_open = !folder_open;   
+        }
+
+        f_hover = ImClamp(f_hover + (hovered ? g.IO.DeltaTime : -g.IO.DeltaTime) * animation_speed, 0.0f, 1.0f);
+        f_active = ImClamp(f_active + ((global_active_id == folder_id) ? g.IO.DeltaTime : -g.IO.DeltaTime) * animation_speed, 0.0f, 1.0f);
+
+        ImVec4 col_hover = style.Colors[ImGuiCol_HeaderHovered];
+        ImVec4 col_active = style.Colors[ImGuiCol_HeaderActive];
+        if (col_active.w == 0.0f) col_active = style.Colors[ImGuiCol_SliderGrab];
+
+        float bg_alpha = (col_hover.w * f_hover) * (1.0f - f_active) + (col_active.w * 0.4f) * f_active;
+        if (bg_alpha > 0.01f) {
+            ImVec4 mixed_bg = ImVec4(
+                col_hover.x + (col_active.x - col_hover.x) * f_active,
+                col_hover.y + (col_active.y - col_hover.y) * f_active,
+                col_hover.z + (col_active.z - col_hover.z) * f_active,
+                bg_alpha
+            );
+            draw_list->AddRectFilled(folder_bb.Min, folder_bb.Max, ImGui::GetColorU32(mixed_bg), 3.0f);
+        }
+
+        float center_y = folder_bb.Min.y + (header_height * 0.5f); // Use header_height
+        float text_offset_y = center_y - (ImGui::GetTextLineHeight() * 0.5f);
+        float x_cursor = folder_bb.Min.x + 6.0f;
+
+        ImVec4 col_text_normal = style.Colors[ImGuiCol_Text];
+        ImVec4 col_text_accent = style.Colors[ImGuiCol_SliderGrabActive];
+
+        float arrow_size = 5.0f; // Slightly larger arrow for bigger header
+        ImU32 arrow_color = ImGui::GetColorU32(ImVec4(
+            col_text_normal.x + (col_text_accent.x - col_text_normal.x) * f_active,
+            col_text_normal.y + (col_text_accent.y - col_text_normal.y) * f_active,
+            col_text_normal.z + (col_text_accent.z - col_text_normal.z) * f_active,
+            1.0f
+        ));
+
+        if (folder_open) {
+            draw_list->AddTriangleFilled(ImVec2(x_cursor, center_y - arrow_size * 0.5f), ImVec2(x_cursor + arrow_size * 2.0f, center_y - arrow_size * 0.5f), ImVec2(x_cursor + arrow_size, center_y + arrow_size * 0.5f), arrow_color);
+        } else {
+            draw_list->AddTriangleFilled(ImVec2(x_cursor, center_y - arrow_size), ImVec2(x_cursor + arrow_size * 0.86f * 2.0f, center_y), ImVec2(x_cursor, center_y + arrow_size), arrow_color);
+        }
+        x_cursor += 14.0f;
+
+        // --- NEW: Render Lucide ICON_LC_LIST_MUSIC Icon ---
+        ImU32 icon_color = ImGui::GetColorU32(ImVec4(
+            col_text_normal.x + (col_text_accent.x - col_text_normal.x) * f_active,
+            col_text_normal.y + (col_text_accent.y - col_text_normal.y) * f_active,
+            col_text_normal.z + (col_text_accent.z - col_text_normal.z) * f_active,
+            1.0f
+        ));
+
+        // Use the s_icons font from your FontManager namespace/class
+        ImGui::PushFont(FontManager::icons());
+        float icon_text_offset_y = center_y - (ImGui::GetTextLineHeight() * 0.5f);
+        draw_list->AddText(ImVec2(x_cursor, icon_text_offset_y), icon_color, ICON_LC_LIST_MUSIC);
+        
+        // Advance cursor past the icon (roughly 18 pixels for clean alignment layout)
+        float icon_width = ImGui::CalcTextSize(ICON_LC_LIST_MUSIC).x;
+        ImGui::PopFont();
+        
+        x_cursor += icon_width + 6.0f; 
+        // --------------------------------------------------
+
+        std::string count_str = std::to_string(group.tracks.size()) + (group.tracks.size() == 1 ? " track" : " tracks");
+        ImVec2 count_text_size = ImGui::CalcTextSize(count_str.c_str());
+        float count_x_pos = folder_bb.Max.x - count_text_size.x - 8.0f;
+        
+        ImU32 final_count_col = ImGui::GetColorU32(ImVec4(
+            style.Colors[ImGuiCol_TextDisabled].x + (col_text_accent.x - style.Colors[ImGuiCol_TextDisabled].x) * f_active * 0.5f,
+            style.Colors[ImGuiCol_TextDisabled].y + (col_text_accent.y - style.Colors[ImGuiCol_TextDisabled].y) * f_active * 0.5f,
+            style.Colors[ImGuiCol_TextDisabled].z + (col_text_accent.z - style.Colors[ImGuiCol_TextDisabled].z) * f_active * 0.5f,
+            style.Colors[ImGuiCol_TextDisabled].w
+        ));
+        draw_list->AddText(ImVec2(count_x_pos, text_offset_y), final_count_col, count_str.c_str());
+
+        float max_title_width = count_x_pos - x_cursor - 8.0f; 
+        if (max_title_width > 0.0f) 
+        {
+            ImU32 final_folder_text_col = ImGui::GetColorU32(ImVec4(
+                col_text_normal.x + (col_text_accent.x - col_text_normal.x) * f_active,
+                col_text_normal.y + (col_text_accent.y - col_text_normal.y) * f_active,
+                col_text_normal.z + (col_text_accent.z - col_text_normal.z) * f_active,
+                1.0f
+            ));
+
+            ImVec2 text_min = ImVec2(x_cursor, folder_bb.Min.y);
+            ImVec2 text_max = ImVec2(x_cursor + max_title_width, folder_bb.Max.y);
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, final_folder_text_col);
+            ImGui::RenderTextClipped(text_min, text_max, group.name.c_str(), nullptr, nullptr, ImVec2(0.0f, 0.5f));
+            ImGui::PopStyleColor();
+        }
+
+        if (ImGui::BeginPopupContextItem(folder_id_str.c_str())) {
+            ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.30f, 1.0f), "Playlist Options");
+            ImGui::Separator();
+            if (ImGui::MenuItem("Play Entire Playlist Selection")) {}
+            ImGui::EndPopup();
+        }
+    }
+
+    // 2. RENDER INNER TRACK ENTRIES
+    if (folder_open) {
+        for (int t = 0; t < (int)group.tracks.size(); t++) {
+            const auto& track = group.tracks[t];
+            std::string track_id_str = folder_id_str + "_t_" + std::to_string(t);
+            ImGuiID track_id = window->GetID(track_id_str.c_str());
+
+            float& t_hover = SmoothAnimState::GetRef(track_id);
+
+            ImVec2 track_pos = window->DC.CursorPos;
+            ImRect track_bb(track_pos, ImVec2(track_pos.x + content_width, track_pos.y + row_height));
+
+            ImGui::ItemSize(track_bb, style.FramePadding.y);
+            if (!ImGui::ItemAdd(track_bb, track_id)) continue;
+
+            bool t_hovered, t_held;
+            bool t_pressed = ImGui::ButtonBehavior(track_bb, track_id, &t_hovered, &t_held);
+
+            if (t_pressed && ImGui::IsMouseDoubleClicked(0)) {
+                printf("[Audio Engine Master] Stream Track: %s\n", track.name.c_str());
+            }
+
+            t_hover = ImClamp(t_hover + (t_hovered ? g.IO.DeltaTime : -g.IO.DeltaTime) * animation_speed, 0.0f, 1.0f);
+
+            float t_content_start_x = track_bb.Min.x + 22.0f; 
+
+            if (t_hover > 0.01f) {
+                ImVec4 col_h = style.Colors[ImGuiCol_HeaderHovered];
+                ImU32 track_bg_col = ImGui::GetColorU32(ImVec4(col_h.x, col_h.y, col_h.z, col_h.w * t_hover));
+                
+                ImVec2 clipped_min = ImVec2(t_content_start_x - 4.0f, track_bb.Min.y); 
+                draw_list->AddRectFilled(clipped_min, track_bb.Max, track_bg_col, 3.0f);
+            }
+
+            float t_center_y = track_bb.Min.y + (row_height * 0.5f);
+            float t_text_offset_y = t_center_y - (ImGui::GetTextLineHeight() * 0.5f);
+            float t_x_cursor = t_content_start_x; 
+
+            // Mini Audio Waveform/Track Icon
+            ImU32 track_icon_col = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
+            draw_list->AddRectFilled(ImVec2(t_x_cursor, t_center_y - 4.0f), ImVec2(t_x_cursor + 2.0f, t_center_y + 4.0f), track_icon_col);
+            draw_list->AddRectFilled(ImVec2(t_x_cursor + 4.0f, t_center_y - 6.0f), ImVec2(t_x_cursor + 6.0f, t_center_y + 6.0f), track_icon_col);
+            draw_list->AddRectFilled(ImVec2(t_x_cursor + 8.0f, t_center_y - 2.0f), ImVec2(t_x_cursor + 10.0f, t_center_y + 2.0f), track_icon_col);
+            t_x_cursor += 18.0f;
+
+            float max_track_title_width = track_bb.Max.x - t_x_cursor - 8.0f;
+            if (!track.duration.empty()) {
+                ImVec2 ts = ImGui::CalcTextSize(track.duration.c_str());
+                max_track_title_width -= (ts.x + 8.0f);
+                draw_list->AddText(ImVec2(track_bb.Max.x - ts.x - 8.0f, t_text_offset_y), ImGui::GetColorU32(ImGuiCol_TextDisabled), track.duration.c_str());
+            }
+
+            if (max_track_title_width > 0.0f) {
+                ImVec2 track_text_min = ImVec2(t_x_cursor, track_bb.Min.y);
+                ImVec2 track_text_max = ImVec2(t_x_cursor + max_track_title_width, track_bb.Max.y);
+                
+                ImU32 track_text_color = ImGui::GetColorU32(ImVec4(0.13f, 0.13f, 0.13f, 1.0f)); // Re-aligned text to match your light theme text variable state (#212121)
+                ImGui::PushStyleColor(ImGuiCol_Text, track_text_color);
+                ImGui::RenderTextClipped(track_text_min, track_text_max, track.name.c_str(), nullptr, nullptr, ImVec2(0.0f, 0.5f));
+                ImGui::PopStyleColor();
+            }
+
+            // ── CONTEXT MENU CONFIGURATION (TWEAK THESE) ──
+            // Width adjustments
+            float context_menu_width = ImGui::GetFontSize() * 10.5f; 
+
+            // Padding adjustments (Reduced from 12.0f, 10.0f for a tighter look)
+            ImVec2 menu_padding = ImVec2(4.0f, 6.0f); 
+
+
+            // ── COMPLETED CONTEXT MENU FOR PLAYLIST TRACK ENTRIES ──
+            // Push our custom tighter padding and item spacing metrics
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, menu_padding);
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f)); 
+
+            // Apply your fine-tuned width constraint here
+            ImGui::SetNextWindowSize(ImVec2(context_menu_width, 0.0f)); 
+
+            if (ImGui::BeginPopupContextItem(track_id_str.c_str())) {
+
+                // Helper lambda to draw custom menu items with mixed fonts
+                auto DrawIconButtonMenuItem = [](const char* icon, const char* label, bool enabled, ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text]) -> bool {
+                    bool pressed = false;
+                    ImGui::BeginDisabled(!enabled);
+                    
+                    if (ImGui::Selectable(label, false, ImGuiSelectableFlags_SpanAllColumns)) {
+                        pressed = true;
+                    }
+                    
+                    // This dynamically respects whatever WindowPadding.x you push above!
+                    ImGui::SameLine(ImGui::GetStyle().WindowPadding.x);
+                    ImGui::PushFont(FontManager::icons());
+                    if (!enabled) {
+                        ImGui::TextDisabled("%s", icon);
+                    } else {
+                        ImGui::TextColored(text_color, "%s", icon);
+                    }
+                    ImGui::PopFont();
+                    
+                    ImGui::EndDisabled();
+                    return pressed;
+                };
+
+                // 1. Move Track Up Placement Operation
+                if (DrawIconButtonMenuItem(ICON_LC_ARROW_UP, "    Move Up", (t > 0))) {
+                    // Action: Swap placement index in backend vector structure
+                }
+
+                // 2. Move Track Down Placement Operation
+                if (DrawIconButtonMenuItem(ICON_LC_ARROW_DOWN, "    Move Down", (t < (int)group.tracks.size() - 1))) {
+                    // Action: Swap placement index in backend vector structure
+                }
+
+                // 3. Deletion Management Option
+                ImVec4 danger_color = ImVec4(0.75f, 0.21f, 0.16f, 1.0f); // #C0362A
+                ImGui::PushStyleColor(ImGuiCol_Text, danger_color);
+                if (DrawIconButtonMenuItem(ICON_LC_TRASH_2, "    Delete from Playlist", true, danger_color)) {
+                    // Action: Remove specific tracking reference node from index array structure
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::EndPopup();
+            }
+
+            ImGui::PopStyleVar(2); // Safely pops WindowPadding and ItemSpacing
+        }
+    }
+}
+
+void StrictTwoTierPlaylistView(const char* str_id, const std::vector<PlaylistGroup>& list)
+{
+    static ImGuiID global_active_playlist_folder_id = 0;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+    for (int i = 0; i < (int)list.size(); i++) {
+        RenderPlaylistGroupNode(list[i], str_id, i, global_active_playlist_folder_id);
+    }
+    ImGui::PopStyleVar();
 }
