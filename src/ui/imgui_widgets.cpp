@@ -257,7 +257,7 @@ bool SmoothScaleButton(const char* label, const ImVec2& size_arg, ButtonFont fon
     return pressed;
 }
 
-bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const ImVec2& size_arg = ImVec2(0, 0))
+bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const ImVec2& size_arg)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems) return false;
@@ -302,4 +302,111 @@ bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const 
 
     ImGui::PopStyleColor(1);
     return changed;
+}
+
+// ── SmoothHoverTable ────────────────────────────────────────────────────────
+
+bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items, int* out_selected_index)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return false;
+ 
+    ImGuiContext& g = *GImGui;
+    const ImGuiStyle& style = g.Style;
+ 
+    ImGuiTableFlags table_flags = ImGuiTableFlags_NoBordersInBody
+                                | ImGuiTableFlags_NoHostExtendX;
+ 
+    bool any_clicked = false;
+ 
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 7.0f));
+ 
+    if (ImGui::BeginTable(str_id, 3, table_flags, ImVec2(0, 0)))
+    {
+        ImGui::TableSetupColumn("Number",   ImGuiTableColumnFlags_WidthFixed,   30.0f);
+        ImGui::TableSetupColumn("Title",    ImGuiTableColumnFlags_WidthStretch,  1.0f);
+        ImGui::TableSetupColumn("Duration", ImGuiTableColumnFlags_WidthFixed,   45.0f);
+ 
+        for (int i = 0; i < (int)items.size(); ++i)
+        {
+            ImGui::TableNextRow();
+ 
+            ImGuiID row_id = ImGui::GetID((std::string(str_id) + "_row_" + std::to_string(i)).c_str());
+            float& t = SmoothAnimState::GetRef(row_id);
+            float animation_speed = 12.0f;
+ 
+            // Push transparent colors so the Selectable itself draws no highlight
+            ImGui::PushStyleColor(ImGuiCol_Header,        IM_COL32(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive,  IM_COL32(0,0,0,0));
+ 
+            ImGui::TableSetColumnIndex(0);
+ 
+            std::string selectable_id = "##row_sel_" + std::to_string(i);
+            bool is_selected = (out_selected_index && *out_selected_index == i);
+ 
+            if (ImGui::Selectable(selectable_id.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns)) {
+                if (out_selected_index) *out_selected_index = i;
+                any_clicked = true;
+            }
+ 
+            bool row_hovered = ImGui::IsItemHovered();
+ 
+            ImGui::PopStyleColor(3);
+ 
+            // --- Smooth hover interpolation ---
+            if (row_hovered) {
+                t += g.IO.DeltaTime * animation_speed;
+                if (t > 1.0f) t = 1.0f;
+            } else {
+                t -= g.IO.DeltaTime * animation_speed;
+                if (t < 0.0f) t = 0.0f;
+            }
+ 
+            // --- Column 0: Center-aligned Number text ---
+            ImGui::TableSetColumnIndex(0);
+            ImGui::SameLine();
+
+            // Calculate text width to center it within the 30.0f fixed column width
+            float text_width = ImGui::CalcTextSize(items[i].number.c_str()).x;
+            float column_width = ImGui::GetContentRegionAvail().x; 
+            if (text_width < column_width)
+            {
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (column_width - text_width) * 0.5f);
+            }
+            ImGui::TextUnformatted(items[i].number.c_str());
+ 
+            // --- Column 1: Title ---
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(items[i].title.c_str());
+ 
+            // --- Column 2: Duration ---
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TextUnformatted(items[i].duration.c_str());
+
+            // --- Draw highlight AFTER all columns are rendered, but on the background channel ---
+            if (t > 0.01f) {
+                ImGuiTable* table = g.CurrentTable;
+                const float rounding = 6.0f;
+                const float inset_x  = 4.0f;
+                const float inset_y  = 2.0f;
+ 
+                ImVec2 min_p = ImVec2(table->WorkRect.Min.x + inset_x, table->RowPosY1 + inset_y);
+                ImVec2 max_p = ImVec2(table->WorkRect.Max.x - inset_x, table->RowPosY2 - inset_y);
+ 
+                ImVec4 col_bg = style.Colors[ImGuiCol_HeaderHovered];
+                ImU32 row_bg_color = ImGui::GetColorU32(ImVec4(col_bg.x, col_bg.y, col_bg.z, col_bg.w * t));
+ 
+                ImGui::TablePushBackgroundChannel();
+                window->DrawList->AddRectFilled(min_p, max_p, row_bg_color, rounding);
+                ImGui::TablePopBackgroundChannel();
+            }
+        }
+ 
+        ImGui::EndTable();
+    }
+ 
+    ImGui::PopStyleVar();
+ 
+    return any_clicked;
 }

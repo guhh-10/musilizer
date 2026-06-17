@@ -1,4 +1,7 @@
 #include "imgui.h"
+#include <imgui_internal.h>
+#include <vector>
+#include <string>
 
 #include "ui/tab_panel.hpp"
 #include "ui/imgui_widgets.hpp"
@@ -18,13 +21,13 @@ void TabPanel::drawTabBar()
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
 
-        if (SmoothRadioButton("Playlists", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == 0))
-            m_activeTab = 0;
+        if (SmoothRadioButton("Playlists", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == ContextView::VIEW_PLAYLIST))
+            m_activeTab = ContextView::VIEW_PLAYLIST;
             
         ImGui::SameLine(0, spacing);
         
-        if (SmoothRadioButton("Up Next", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == 1))
-            m_activeTab = 1;
+        if (SmoothRadioButton("Up Next", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == ContextView::VIEW_QUEUE))
+            m_activeTab = ContextView::VIEW_QUEUE;
             
     ImGui::PopStyleColor();
 
@@ -33,5 +36,31 @@ void TabPanel::drawTabBar()
 
 void TabPanel::drawTabContent()
 {
-    // TODO: Implement conditional layout swap based on active tab state
+    if (m_activeTab == ContextView::VIEW_PLAYLIST)
+        drawPlaylistContent();
+    else if (m_activeTab == ContextView::VIEW_QUEUE)
+        drawQueueContent();
+}
+
+void TabPanel::drawPlaylistContent()
+{
+    //TODO: Playlist using tree struct
+}
+
+void TabPanel::drawQueueContent()
+{
+    static const std::vector<TableRowItem> mock_queue = {
+        {"1",  "Starlight Express",   "3:44"},
+        {"2",  "Midnight Coffee Run", "3:05"},
+        {"3",  "Cybernetic Dreams",   "5:12"},
+        {"4",  "Whispering Shadows",  "4:34"},
+        {"5",  "Solar Wind Flares",   "3:19"},
+        {"6",  "Neon Drift",          "4:02"},
+        {"7",  "Glass Horizon",       "3:51"},
+        {"8",  "Velvet Circuit",      "2:58"},
+    };
+
+    static int selected_queue_idx = -1;
+
+    SmoothHoverTable("##queue_table", mock_queue, &selected_queue_idx);
 }

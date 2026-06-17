@@ -3,11 +3,19 @@
 
 #include "ui/imgui_widgets.hpp"
 
+enum class ContextView {
+    VIEW_QUEUE,
+    VIEW_PLAYLIST
+};
+
 class TabPanel {
 public:
     void drawTabBar();
     void drawTabContent();
 
 private:
-    int m_activeTab = 0;
+    void drawPlaylistContent();
+    void drawQueueContent();
+
+    ContextView m_activeTab = ContextView::VIEW_PLAYLIST;
 };

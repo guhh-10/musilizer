@@ -88,19 +88,24 @@ void LibraryPanel::drawSearchBar(float padding) {
         window->DrawList->AddRectFilled(panel_bb.Min, panel_bb.Max, white_bg_col, panel_rounding);
         window->DrawList->AddRect(panel_bb.Min, panel_bb.Max, darker_white_border_col, panel_rounding, 0, 1.5f);
 
-        // Procedural magnifying glass icon
-        float center_y = panel_bb.Min.y + (input_bar_graphic_height * 0.5f);
-        ImVec2 icon_center = ImVec2(panel_bb.Min.x + padding_x + 6.0f, center_y - 2.0f);
-        float icon_radius = 4.5f;
+        // --- NEW: Font-based Search Icon Rendering ---
+        const char* search_icon = ICON_LC_SEARCH;
+        ImFont* icon_font = FontManager::icons(); // Fetching your icon font pool
         ImU32 icon_color = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
 
-        window->DrawList->AddCircle(icon_center, icon_radius, icon_color, 16, 2.0f);
-        ImVec2 handle_start = ImVec2(icon_center.x + 3.0f, icon_center.y + 3.0f);
-        ImVec2 handle_end = ImVec2(icon_center.x + 8.0f, icon_center.y + 8.0f);
-        window->DrawList->AddLine(handle_start, handle_end, icon_color, 2.5f);
+        // Calculate icon dimensions and vertical alignment center
+        ImVec2 icon_size = icon_font->CalcTextSizeA(icon_font->FontSize, FLT_MAX, 0.0f, search_icon);
+        float center_y = panel_bb.Min.y + (input_bar_graphic_height * 0.5f);
+        ImVec2 icon_pos = ImVec2(panel_bb.Min.x + padding_x, center_y - (icon_size.y * 0.5f));
+
+        // Draw the text icon explicitly through the draw list
+        window->DrawList->AddText(icon_font, icon_font->FontSize, icon_pos, icon_color, search_icon);
+
+        // Track how much space the icon dynamically occupies
+        float icon_allocated_width = icon_size.x + 6.0f; // Added small spacer padding after the icon
+        // ----------------------------------------------
 
         // Embedded text input
-        float icon_allocated_width = 24.0f;
         float embedded_input_width = width_arg - (padding_x * 2.0f) - icon_allocated_width;
         window->DC.CursorPos = ImVec2(panel_bb.Min.x + padding_x + icon_allocated_width, panel_bb.Min.y + padding_y);
 
@@ -204,9 +209,13 @@ void LibraryPanel::drawTableTrack() {
 
             // Apply the row background colour using table API (fills entire row including padding)
             if (is_active || row_hovered) {
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
+
                 ImU32 bg_color = is_active ? ImGui::GetColorU32(ImGuiCol_HeaderActive)
                                            : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
+
+                ImGui::PopStyleColor();
             }
 
             // Style vars must be pushed BEFORE BeginPopupContextItem so ImGui
@@ -239,7 +248,7 @@ void LibraryPanel::drawTableTrack() {
                     icon_font->FontSize, FLT_MAX, 0.0f, play_icon);
 
                 ImU32 icon_color = is_active
-                    ? ImGui::GetColorU32(ImGuiCol_SliderGrabActive)
+                    ? ImGui::GetColorU32(ImGuiCol_PlotLinesHovered)
                     : ImGui::GetColorU32(ImGuiCol_Text);
 
                 // Pass icon_font + its size explicitly; never relies on the ImGui font stack
@@ -258,7 +267,14 @@ void LibraryPanel::drawTableTrack() {
             }
 
             ImGui::TableSetColumnIndex(1);
+            // Push a custom text color for active rows only in the title column
+            if (is_active) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_SeparatorActive]);
+            }
             ImGui::TextUnformatted(track.title.c_str());
+            if (is_active) {
+                ImGui::PopStyleColor();
+            }
 
             ImGui::TableSetColumnIndex(2);
             std::string artist_str;
