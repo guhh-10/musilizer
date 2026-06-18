@@ -3,6 +3,7 @@
 #include <IconsLucide.h>
 
 #include "ui/imgui_widgets.hpp"
+#include "ui/fonts.hpp"
 
 // ── Font resolver ───────────────────────────────────────────────────────────
 
@@ -336,25 +337,84 @@ bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items
             float& t = SmoothAnimState::GetRef(row_id);
             float animation_speed = 12.0f;
  
-            // Push transparent colors so the Selectable itself draws no highlight
-            ImGui::PushStyleColor(ImGuiCol_Header,        IM_COL32(0,0,0,0));
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0,0,0,0));
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive,  IM_COL32(0,0,0,0));
+            // --- Step 1: Run Column 1 First to establish the dynamic Row Height ---
+            ImGui::TableSetColumnIndex(1);
+            float row_top_y = ImGui::GetCursorPosY();
+
+            // 1. Title Text
+            ImGui::TextUnformatted(items[i].title.c_str()); //
  
+            // 2. Artist Subtitle Text
+            ImGui::PushFont(FontManager::qArtist()); //
+            ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f); 
+            ImGui::TextUnformatted(items[i].artist.c_str());
+            ImGui::PopStyleColor();
+            ImGui::PopFont();
+
+            // Capture final bounds
+            float row_bottom_y = ImGui::GetCursorPosY();
+            float content_height = row_bottom_y - row_top_y;
+            
+            // Calculate vertical center alignment offsets
+            float single_line_height = ImGui::GetFontSize();
+            float vertical_offset = (content_height - single_line_height) * 0.5f;
+
+            // --- Step 2: Place the Selectable across the full expanded row height ---
             ImGui::TableSetColumnIndex(0);
+            
+            // Push transparent colors so the Selectable draws no raw default rectangle
+            ImGui::PushStyleColor(ImGuiCol_Header,        IM_COL32(0,0,0,0)); //
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0,0,0,0)); //
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive,  IM_COL32(0,0,0,0)); //
  
             std::string selectable_id = "##row_sel_" + std::to_string(i);
             bool is_selected = (out_selected_index && *out_selected_index == i);
  
-            if (ImGui::Selectable(selectable_id.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns)) {
+            // Crucial: Set cursor back to the row top so the hitbox fills from top to bottom
+            ImGui::SetCursorPosY(row_top_y);
+            
+            // Create an invisible button item matching the exact evaluated height of the row content
+            if (ImGui::Selectable(selectable_id.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, content_height))) {
                 if (out_selected_index) *out_selected_index = i;
                 any_clicked = true;
             }
  
             bool row_hovered = ImGui::IsItemHovered();
- 
             ImGui::PopStyleColor(3);
  
+            // --- Step 3: Draw Column Content Overlays ---
+
+            // --- Column 0: Center-aligned Number text ---
+            ImGui::SameLine(); //
+            if (vertical_offset > 0.0f) {
+                ImGui::SetCursorPosY(row_top_y + vertical_offset);
+            }
+
+            float text_width = ImGui::CalcTextSize(items[i].number.c_str()).x; //
+            float column_width = ImGui::GetContentRegionAvail().x; //
+            if (text_width < column_width) //
+            {
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (column_width - text_width) * 0.5f); //
+            }
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]); //
+            ImGui::TextUnformatted(items[i].number.c_str()); //
+            ImGui::PopStyleColor(); //
+ 
+            // --- Column 2: Duration text ---
+            ImGui::TableSetColumnIndex(2);
+            if (vertical_offset > 0.0f) {
+                ImGui::SetCursorPosY(row_top_y + vertical_offset);
+            }
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]); //
+            ImGui::TextUnformatted(items[i].duration.c_str()); //
+            ImGui::PopStyleColor(); //
+
+            // Step cursor past the multi-line block for the next row loop pass
+            ImGui::SetCursorPosY(row_bottom_y);
+
             // --- Smooth hover interpolation ---
             if (row_hovered) {
                 t += g.IO.DeltaTime * animation_speed;
@@ -364,52 +424,31 @@ bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items
                 if (t < 0.0f) t = 0.0f;
             }
  
-            // --- Column 0: Center-aligned Number text ---
-            ImGui::TableSetColumnIndex(0);
-            ImGui::SameLine();
-
-            // Calculate text width to center it within the 30.0f fixed column width
-            float text_width = ImGui::CalcTextSize(items[i].number.c_str()).x;
-            float column_width = ImGui::GetContentRegionAvail().x; 
-            if (text_width < column_width)
-            {
-                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (column_width - text_width) * 0.5f);
-            }
-            ImGui::TextUnformatted(items[i].number.c_str());
+            // --- Draw background highlight channel ---
+            if (t > 0.01f) { //
+                ImGuiTable* table = g.CurrentTable; //
+                const float rounding = 6.0f; //
+                const float inset_x  = 4.0f; //
+                const float inset_y  = 2.0f; //
  
-            // --- Column 1: Title ---
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TextUnformatted(items[i].title.c_str());
+                ImVec2 min_p = ImVec2(table->WorkRect.Min.x + inset_x, table->RowPosY1 + inset_y); //
+                ImVec2 max_p = ImVec2(table->WorkRect.Max.x - inset_x, table->RowPosY2 - inset_y); //
  
-            // --- Column 2: Duration ---
-            ImGui::TableSetColumnIndex(2);
-            ImGui::TextUnformatted(items[i].duration.c_str());
-
-            // --- Draw highlight AFTER all columns are rendered, but on the background channel ---
-            if (t > 0.01f) {
-                ImGuiTable* table = g.CurrentTable;
-                const float rounding = 6.0f;
-                const float inset_x  = 4.0f;
-                const float inset_y  = 2.0f;
+                ImVec4 col_bg = style.Colors[ImGuiCol_HeaderHovered]; //
+                ImU32 row_bg_color = ImGui::GetColorU32(ImVec4(col_bg.x, col_bg.y, col_bg.z, col_bg.w * t)); //
  
-                ImVec2 min_p = ImVec2(table->WorkRect.Min.x + inset_x, table->RowPosY1 + inset_y);
-                ImVec2 max_p = ImVec2(table->WorkRect.Max.x - inset_x, table->RowPosY2 - inset_y);
- 
-                ImVec4 col_bg = style.Colors[ImGuiCol_HeaderHovered];
-                ImU32 row_bg_color = ImGui::GetColorU32(ImVec4(col_bg.x, col_bg.y, col_bg.z, col_bg.w * t));
- 
-                ImGui::TablePushBackgroundChannel();
-                window->DrawList->AddRectFilled(min_p, max_p, row_bg_color, rounding);
-                ImGui::TablePopBackgroundChannel();
+                ImGui::TablePushBackgroundChannel(); //
+                window->DrawList->AddRectFilled(min_p, max_p, row_bg_color, rounding); //
+                ImGui::TablePopBackgroundChannel(); //
             }
         }
  
-        ImGui::EndTable();
+        ImGui::EndTable(); //
     }
  
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(); //
  
-    return any_clicked;
+    return any_clicked; //
 }
 
 void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base_id, int group_idx, ImGuiID& global_active_id)
@@ -420,9 +459,24 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
     ImDrawList* draw_list = window->DrawList;
 
     float row_height = 24.0f;
-    float header_height = 32.0f; // Increased header height (was 24.0f)
+    float header_height = 32.0f; 
     float animation_speed = 12.0f;
     float content_width = ImGui::GetContentRegionAvail().x;
+
+    // Reusable core Lambda for rendering custom menu items with explicit width mapping (Icons Removed)
+    auto DrawIconButtonMenuItem = [](const char* label, bool enabled, float min_width, ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text]) -> bool {
+        bool pressed = false;
+        ImGui::BeginDisabled(!enabled);
+        
+        ImGui::PushStyleColor(ImGuiCol_Text, text_color);
+        if (ImGui::Selectable(label, false, ImGuiSelectableFlags_SpanAllColumns, ImVec2(min_width, 0))) {
+            pressed = true;
+        }
+        ImGui::PopStyleColor();
+        
+        ImGui::EndDisabled();
+        return pressed;
+    };
 
     // 1. RENDER TOP-LEVEL PLAYLIST FOLDER (Full Row Highlight)
     std::string folder_id_str = base_id + "_f_" + std::to_string(group_idx);
@@ -433,7 +487,7 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
     bool& folder_open = *(bool*)&SmoothAnimState::GetRef(folder_id + 999);
 
     ImVec2 folder_pos = window->DC.CursorPos;
-    ImRect folder_bb(folder_pos, ImVec2(folder_pos.x + content_width, folder_pos.y + header_height)); // Use header_height
+    ImRect folder_bb(folder_pos, ImVec2(folder_pos.x + content_width, folder_pos.y + header_height)); 
 
     ImGui::ItemSize(folder_bb, style.FramePadding.y);
     if (ImGui::ItemAdd(folder_bb, folder_id)) 
@@ -464,29 +518,14 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
             draw_list->AddRectFilled(folder_bb.Min, folder_bb.Max, ImGui::GetColorU32(mixed_bg), 3.0f);
         }
 
-        float center_y = folder_bb.Min.y + (header_height * 0.5f); // Use header_height
+        float center_y = folder_bb.Min.y + (header_height * 0.5f); 
         float text_offset_y = center_y - (ImGui::GetTextLineHeight() * 0.5f);
-        float x_cursor = folder_bb.Min.x + 6.0f;
+        
+        float x_cursor = folder_bb.Min.x + 8.0f; 
 
         ImVec4 col_text_normal = style.Colors[ImGuiCol_Text];
         ImVec4 col_text_accent = style.Colors[ImGuiCol_SliderGrabActive];
 
-        float arrow_size = 5.0f; // Slightly larger arrow for bigger header
-        ImU32 arrow_color = ImGui::GetColorU32(ImVec4(
-            col_text_normal.x + (col_text_accent.x - col_text_normal.x) * f_active,
-            col_text_normal.y + (col_text_accent.y - col_text_normal.y) * f_active,
-            col_text_normal.z + (col_text_accent.z - col_text_normal.z) * f_active,
-            1.0f
-        ));
-
-        if (folder_open) {
-            draw_list->AddTriangleFilled(ImVec2(x_cursor, center_y - arrow_size * 0.5f), ImVec2(x_cursor + arrow_size * 2.0f, center_y - arrow_size * 0.5f), ImVec2(x_cursor + arrow_size, center_y + arrow_size * 0.5f), arrow_color);
-        } else {
-            draw_list->AddTriangleFilled(ImVec2(x_cursor, center_y - arrow_size), ImVec2(x_cursor + arrow_size * 0.86f * 2.0f, center_y), ImVec2(x_cursor, center_y + arrow_size), arrow_color);
-        }
-        x_cursor += 14.0f;
-
-        // --- NEW: Render Lucide ICON_LC_LIST_MUSIC Icon ---
         ImU32 icon_color = ImGui::GetColorU32(ImVec4(
             col_text_normal.x + (col_text_accent.x - col_text_normal.x) * f_active,
             col_text_normal.y + (col_text_accent.y - col_text_normal.y) * f_active,
@@ -494,17 +533,16 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
             1.0f
         ));
 
-        // Use the s_icons font from your FontManager namespace/class
+        const char* current_icon = folder_open ? ICON_LC_LIST_MUSIC : ICON_LC_LIST_TREE;
+
         ImGui::PushFont(FontManager::icons());
         float icon_text_offset_y = center_y - (ImGui::GetTextLineHeight() * 0.5f);
-        draw_list->AddText(ImVec2(x_cursor, icon_text_offset_y), icon_color, ICON_LC_LIST_MUSIC);
+        draw_list->AddText(ImVec2(x_cursor, icon_text_offset_y), icon_color, current_icon);
         
-        // Advance cursor past the icon (roughly 18 pixels for clean alignment layout)
-        float icon_width = ImGui::CalcTextSize(ICON_LC_LIST_MUSIC).x;
+        float icon_width = ImGui::CalcTextSize(current_icon).x;
         ImGui::PopFont();
         
-        x_cursor += icon_width + 6.0f; 
-        // --------------------------------------------------
+        x_cursor += icon_width + 8.0f; 
 
         std::string count_str = std::to_string(group.tracks.size()) + (group.tracks.size() == 1 ? " track" : " tracks");
         ImVec2 count_text_size = ImGui::CalcTextSize(count_str.c_str());
@@ -536,12 +574,27 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
             ImGui::PopStyleColor();
         }
 
+        // --- Folder Context Menu ---
+        ImVec2 menu_padding = ImVec2(8.0f, 6.0f); 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, menu_padding);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f)); 
+
         if (ImGui::BeginPopupContextItem(folder_id_str.c_str())) {
-            ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.30f, 1.0f), "Playlist Options");
-            ImGui::Separator();
-            if (ImGui::MenuItem("Play Entire Playlist Selection")) {}
+            // Define menu strings (Trimmed padding spaces)
+            const char* opt1 = " Play Entire Playlist Selection";
+            const char* opt2 = " Delete Playlist";
+
+            float max_text_width = ImMax(ImGui::CalcTextSize(opt1).x, ImGui::CalcTextSize(opt2).x);
+            float folder_auto_width = max_text_width + (style.ItemInnerSpacing.x * 2.0f);
+
+            if (DrawIconButtonMenuItem(opt1, true, folder_auto_width)) {}
+
+            ImVec4 danger_color = ImVec4(0.75f, 0.21f, 0.16f, 1.0f); 
+            if (DrawIconButtonMenuItem(opt2, true, folder_auto_width, danger_color)) {}
+
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar(2); 
     }
 
     // 2. RENDER INNER TRACK ENTRIES
@@ -600,75 +653,44 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
                 ImVec2 track_text_min = ImVec2(t_x_cursor, track_bb.Min.y);
                 ImVec2 track_text_max = ImVec2(t_x_cursor + max_track_title_width, track_bb.Max.y);
                 
-                ImU32 track_text_color = ImGui::GetColorU32(ImVec4(0.13f, 0.13f, 0.13f, 1.0f)); // Re-aligned text to match your light theme text variable state (#212121)
-                ImGui::PushStyleColor(ImGuiCol_Text, track_text_color);
+                ImVec4 col_muted = style.Colors[ImGuiCol_TextDisabled];
+                ImVec4 col_normal = style.Colors[ImGuiCol_Text];
+                
+                ImVec4 mixed_track_color = ImVec4(
+                    col_muted.x + (col_normal.x - col_muted.x) * t_hover,
+                    col_muted.y + (col_normal.y - col_muted.y) * t_hover,
+                    col_muted.z + (col_normal.z - col_muted.z) * t_hover,
+                    col_muted.w + (col_normal.w - col_muted.w) * t_hover
+                );
+
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(mixed_track_color));
                 ImGui::RenderTextClipped(track_text_min, track_text_max, track.name.c_str(), nullptr, nullptr, ImVec2(0.0f, 0.5f));
                 ImGui::PopStyleColor();
             }
 
-            // ── CONTEXT MENU CONFIGURATION (TWEAK THESE) ──
-            // Width adjustments
-            float context_menu_width = ImGui::GetFontSize() * 10.5f; 
-
-            // Padding adjustments (Reduced from 12.0f, 10.0f for a tighter look)
-            ImVec2 menu_padding = ImVec2(4.0f, 6.0f); 
-
-
-            // ── COMPLETED CONTEXT MENU FOR PLAYLIST TRACK ENTRIES ──
-            // Push our custom tighter padding and item spacing metrics
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, menu_padding);
+            // --- Track Context Menu ---
+            ImVec2 track_menu_padding = ImVec2(8.0f, 6.0f); 
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, track_menu_padding);
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 6.0f)); 
 
-            // Apply your fine-tuned width constraint here
-            ImGui::SetNextWindowSize(ImVec2(context_menu_width, 0.0f)); 
-
             if (ImGui::BeginPopupContextItem(track_id_str.c_str())) {
+                // Define menu strings (Trimmed padding spaces)
+                const char* topt1 = " Move Up";
+                const char* topt2 = " Move Down";
+                const char* topt3 = " Delete from Playlist";
 
-                // Helper lambda to draw custom menu items with mixed fonts
-                auto DrawIconButtonMenuItem = [](const char* icon, const char* label, bool enabled, ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text]) -> bool {
-                    bool pressed = false;
-                    ImGui::BeginDisabled(!enabled);
-                    
-                    if (ImGui::Selectable(label, false, ImGuiSelectableFlags_SpanAllColumns)) {
-                        pressed = true;
-                    }
-                    
-                    // This dynamically respects whatever WindowPadding.x you push above!
-                    ImGui::SameLine(ImGui::GetStyle().WindowPadding.x);
-                    ImGui::PushFont(FontManager::icons());
-                    if (!enabled) {
-                        ImGui::TextDisabled("%s", icon);
-                    } else {
-                        ImGui::TextColored(text_color, "%s", icon);
-                    }
-                    ImGui::PopFont();
-                    
-                    ImGui::EndDisabled();
-                    return pressed;
-                };
+                float max_track_width = ImMax(ImGui::CalcTextSize(topt1).x, ImMax(ImGui::CalcTextSize(topt2).x, ImGui::CalcTextSize(topt3).x));
+                float track_auto_width = max_track_width + (style.ItemInnerSpacing.x * 2.0f);
 
-                // 1. Move Track Up Placement Operation
-                if (DrawIconButtonMenuItem(ICON_LC_ARROW_UP, "    Move Up", (t > 0))) {
-                    // Action: Swap placement index in backend vector structure
-                }
+                if (DrawIconButtonMenuItem(topt1, (t > 0), track_auto_width)) {}
+                if (DrawIconButtonMenuItem(topt2, (t < (int)group.tracks.size() - 1), track_auto_width)) {}
 
-                // 2. Move Track Down Placement Operation
-                if (DrawIconButtonMenuItem(ICON_LC_ARROW_DOWN, "    Move Down", (t < (int)group.tracks.size() - 1))) {
-                    // Action: Swap placement index in backend vector structure
-                }
-
-                // 3. Deletion Management Option
-                ImVec4 danger_color = ImVec4(0.75f, 0.21f, 0.16f, 1.0f); // #C0362A
-                ImGui::PushStyleColor(ImGuiCol_Text, danger_color);
-                if (DrawIconButtonMenuItem(ICON_LC_TRASH_2, "    Delete from Playlist", true, danger_color)) {
-                    // Action: Remove specific tracking reference node from index array structure
-                }
-                ImGui::PopStyleColor();
+                ImVec4 danger_color = ImVec4(0.75f, 0.21f, 0.16f, 1.0f); 
+                if (DrawIconButtonMenuItem(topt3, true, track_auto_width, danger_color)) {}
 
                 ImGui::EndPopup();
             }
-
-            ImGui::PopStyleVar(2); // Safely pops WindowPadding and ItemSpacing
+            ImGui::PopStyleVar(2); 
         }
     }
 }

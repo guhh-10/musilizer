@@ -44,7 +44,6 @@ void TabPanel::drawTabContent()
 
 void TabPanel::drawPlaylistContent()
 {
-    // Replaced the old TODO comment with a mock tree layout structure
     static const std::vector<PlaylistGroup> mock_playlists = {
         {
             "Synthwave Essentials", 
@@ -73,14 +72,14 @@ void TabPanel::drawPlaylistContent()
 void TabPanel::drawQueueContent()
 {
     static const std::vector<TableRowItem> mock_queue = {
-        {"1",  "Starlight Express",   "3:44"},
-        {"2",  "Midnight Coffee Run", "3:05"},
-        {"3",  "Cybernetic Dreams",   "5:12"},
-        {"4",  "Whispering Shadows",  "4:34"},
-        {"5",  "Solar Wind Flares",   "3:19"},
-        {"6",  "Neon Drift",          "4:02"},
-        {"7",  "Glass Horizon",       "3:51"},
-        {"8",  "Velvet Circuit",      "2:58"},
+        {"1",  "Starlight Express",   "The Midnight",      "3:44"},
+        {"2",  "Midnight Coffee Run", "Timecop1983",      "3:05"},
+        {"3",  "Cybernetic Dreams",   "FM-84",             "5:12"},
+        {"4",  "Whispering Shadows",  "Gunship",           "4:34"},
+        {"5",  "Solar Wind Flares",   "Scandroid",         "3:19"},
+        {"6",  "Neon Drift",          "Kavinsky",          "4:02"},
+        {"7",  "Glass Horizon",       "Michael McCann",    "3:51"},
+        {"8",  "Velvet Circuit",      "Waveshaper",        "2:58"},
     };
 
     static int selected_queue_idx = -1;

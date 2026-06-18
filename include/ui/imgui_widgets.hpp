@@ -38,6 +38,7 @@ bool SmoothActiveInputText(const char* label, char* buf, size_t buf_size, const 
 struct TableRowItem {
     std::string number;
     std::string title;
+    std::string artist;
     std::string duration;
 };
 

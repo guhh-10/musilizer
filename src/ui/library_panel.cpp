@@ -1,12 +1,12 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <IconsLucide.h>
+#include <vector>
+#include <string>
 
 #include "ui/library_panel.hpp"
 #include "ui/fonts.hpp"
 #include "ui/imgui_widgets.hpp"
-#include <vector>
-#include <string>
 
 // Inline local mock structure to keep compilation fully safe and static
 struct StaticTrack {
@@ -131,42 +131,43 @@ void LibraryPanel::drawTableTrack() {
     ImGuiTableFlags table_flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoPadOuterX;
     const float right_padding = 6.0f;
     
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(16.0f, 8.0f));
-    // Using 0.0f, 0.0f auto-stretches the table completely to fill the host child wrapper bounds
+    // 1. SET CELL PADDING TO 0.0f VERTICALLY AND HORIZONTALLY
+    // This allows the Selectable hitbox to reach the absolute edge of the table row.
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f)); 
+    
     if (ImGui::BeginTable("##static_library_table", 4, table_flags, ImVec2(0.0f, 0.0f)))
     {
-        // Inside library_panel.cpp -> LibraryPanel::drawTableTrack()
-
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 28.0f);
         ImGui::TableSetupColumn("Title", ImGuiTableColumnFlags_WidthStretch, 50.0f);
         ImGui::TableSetupColumn("Artist", ImGuiTableColumnFlags_WidthStretch, 35.0f);
         ImGui::TableSetupColumn("Duration", ImGuiTableColumnFlags_WidthStretch, 15.0f);
 
-        // 1. Push the header text styles AND the new table header background color
+        // Header styles
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImGui::GetStyle().Colors[ImGuiCol_Border]); // <-- PUSH BORDER COLOR
+        ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImGui::GetStyle().Colors[ImGuiCol_Border]);
 
         ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
-        // Column 0 Header Alignment
+        // Column 0 Header Alignment (Add manual vertical offset since padding is 0)
         ImGui::TableSetColumnIndex(0);
         {
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); // Match your old 8.0f padding
             ImVec2 cell_pos = ImGui::GetCursorScreenPos();
             float column_width = ImGui::GetContentRegionAvail().x;
             ImVec2 text_size = ImGui::CalcTextSize("#");
             float right_edge_x = cell_pos.x + column_width - right_padding;
             ImGui::GetWindowDrawList()->AddText(ImVec2(right_edge_x - text_size.x, cell_pos.y), ImGui::GetColorU32(ImGuiCol_Text), "#");
-            ImGui::Dummy(ImVec2(0, text_size.y)); 
+            ImGui::Dummy(ImVec2(0, text_size.y + 8.0f)); 
         }
 
-        ImGui::TableSetColumnIndex(1); ImGui::TableHeader("Title");
-        ImGui::TableSetColumnIndex(2); ImGui::TableHeader("Artist");
-        ImGui::TableSetColumnIndex(3); ImGui::TableHeader("Duration");
+        // Other Headers (Using dummy offsets or spacing to keep them looking padded)
+        ImGui::TableSetColumnIndex(1); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::TableHeader("Title");
+        ImGui::TableSetColumnIndex(2); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::TableHeader("Artist");
+        ImGui::TableSetColumnIndex(3); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::TableHeader("Duration");
 
-        // 2. Pop 4 colors instead of 3 to clean up the stack properly
-        ImGui::PopStyleColor(4); // <-- CHANGED FROM 3 TO 4
+        ImGui::PopStyleColor(4);
         
         static const std::vector<StaticTrack> static_tracks = {
             {"Starlight Express", {"Neon Horizon", "Lumina"}, 224, "starlight_express.mp4"},
@@ -181,12 +182,14 @@ void LibraryPanel::drawTableTrack() {
 
         for (const auto& track : static_tracks) {
             row_number++;
-            ImGui::TableNextRow();
+            
+            // Define your row height explicitly since CellPadding isn't handling it automatically
+            float custom_row_height = ImGui::GetTextLineHeight() + 16.0f; // 16.0f total vertical spacing (8 top, 8 bottom)
+            ImGui::TableNextRow(ImGuiTableRowFlags_None, custom_row_height);
 
             bool is_active = (selected_mock_idx == row_number);
 
-            // Push transparent colors so the Selectable itself draws no highlight
-            ImGui::PushStyleColor(ImGuiCol_Header,        IM_COL32(0,0,0,0));
+            ImGui::PushStyleColor(ImGuiCol_Header,       IM_COL32(0,0,0,0));
             ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0,0,0,0));
             ImGui::PushStyleColor(ImGuiCol_HeaderActive,  IM_COL32(0,0,0,0));
 
@@ -199,97 +202,90 @@ void LibraryPanel::drawTableTrack() {
             std::string row_select_id  = "##static_row_"    + std::to_string(row_number);
             std::string row_context_id = "##row_ctx_menu_"  + std::to_string(row_number);
 
-            if (ImGui::Selectable(row_select_id.c_str(), is_active, ImGuiSelectableFlags_SpanAllColumns)) {
+            // 2. PASS THE CUSTOM HEIGHT INTO SELECTABLE
+            // Using ImVec2(0, custom_row_height) ensures the action area spans the whole vertical height of the row.
+            if (ImGui::Selectable(row_select_id.c_str(), is_active, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, custom_row_height))) {
                 selected_mock_idx = row_number;
             }
 
             bool row_hovered = ImGui::IsItemHovered();
+            ImGui::PopStyleColor(3);
 
-            ImGui::PopStyleColor(3);   // pop the three transparent colors
-
-            // Apply the row background colour using table API (fills entire row including padding)
             if (is_active || row_hovered) {
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-
                 ImU32 bg_color = is_active ? ImGui::GetColorU32(ImGuiCol_HeaderActive)
                                            : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, bg_color);
-
                 ImGui::PopStyleColor();
             }
 
-            // Style vars must be pushed BEFORE BeginPopupContextItem so ImGui
-            // applies them when it sizes and positions the popup window itself.
+            // Context Menu Styles
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 6.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(8.0f, 6.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.0f);
 
-            // Each row must own its popup under a unique ID so right-clicking row N
-            // cannot open the context window that was last opened on row M.
             if (ImGui::BeginPopupContextItem(row_context_id.c_str())) {
                 selected_mock_idx = row_number;
                 drawContextMenu(track.title, track.filename);
                 ImGui::EndPopup();
             }
-
             ImGui::PopStyleVar(3);
 
-            // Draw the right-aligned content in column 0 (play icon or row number)
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            // --- DRAW CONTENT WITH MANUAL INSET PADDING ---
+            // Center everything vertically in our newly sized, 0-padded row
+            float content_offset_y = (custom_row_height - line_height) * 0.5f;
             float right_edge_x = cell_pos.x + column_width - right_padding;
-            float center_y = cell_pos.y + line_height * 0.5f;
+            float center_y = cell_pos.y + content_offset_y + line_height * 0.5f;
 
+            // Draw Column 0 (Play Icon / Number)
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
             if (row_hovered || is_active) {
                 const char* play_icon = ICON_LC_PLAY;
                 ImFont* icon_font     = FontManager::icons();
+                ImVec2 icon_size = icon_font->CalcTextSizeA(icon_font->FontSize, FLT_MAX, 0.0f, play_icon);
+                ImU32 icon_color = is_active ? ImGui::GetColorU32(ImGuiCol_PlotLinesHovered) : ImGui::GetColorU32(ImGuiCol_Text);
 
-                // Measure using the icon font itself, not the currently-pushed Inter font
-                ImVec2 icon_size = icon_font->CalcTextSizeA(
-                    icon_font->FontSize, FLT_MAX, 0.0f, play_icon);
-
-                ImU32 icon_color = is_active
-                    ? ImGui::GetColorU32(ImGuiCol_PlotLinesHovered)
-                    : ImGui::GetColorU32(ImGuiCol_Text);
-
-                // Pass icon_font + its size explicitly; never relies on the ImGui font stack
-                draw_list->AddText(
-                    icon_font,
-                    icon_font->FontSize,
-                    ImVec2(right_edge_x - icon_size.x, center_y - icon_size.y * 0.5f),
-                    icon_color,
-                    play_icon
-                );
+                draw_list->AddText(icon_font, icon_font->FontSize, ImVec2(right_edge_x - icon_size.x, center_y - icon_size.y * 0.5f), icon_color, play_icon);
             } else {
                 char number_buf[8];
                 snprintf(number_buf, sizeof(number_buf), "%d", row_number);
                 ImVec2 text_size = ImGui::CalcTextSize(number_buf);
-                draw_list->AddText(ImVec2(right_edge_x - text_size.x, center_y - text_size.y * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), number_buf);
+                ImU32 number_color = (is_active || row_hovered) ? ImGui::GetColorU32(ImGuiCol_Text) : ImGui::GetColorU32(ImGuiCol_TextDisabled);
+
+                draw_list->AddText(ImVec2(right_edge_x - text_size.x, center_y - text_size.y * 0.5f), number_color, number_buf);
             }
 
+            // Column 1: Title
             ImGui::TableSetColumnIndex(1);
-            // Push a custom text color for active rows only in the title column
-            if (is_active) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_SeparatorActive]);
-            }
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + content_offset_y); // Pad text downward manually
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 16.0f);            // Reapply horizontal 16px padding
+            if (is_active) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_SeparatorActive]);
             ImGui::TextUnformatted(track.title.c_str());
-            if (is_active) {
-                ImGui::PopStyleColor();
-            }
+            if (is_active) ImGui::PopStyleColor();
 
+            // Column 2: Artist
             ImGui::TableSetColumnIndex(2);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + content_offset_y);
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 16.0f);
             std::string artist_str;
             for (size_t i = 0; i < track.artists.size(); ++i) {
                 if (i > 0) artist_str += ", ";
                 artist_str += track.artists[i];
             }
+            if (!is_active && !row_hovered) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::TextUnformatted(artist_str.c_str());
+            if (!is_active && !row_hovered) ImGui::PopStyleColor();
 
+            // Column 3: Duration
             ImGui::TableSetColumnIndex(3);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + content_offset_y);
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 16.0f);
+            if (!is_active && !row_hovered) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::Text("%d:%02d", track.duration / 60, track.duration % 60);
+            if (!is_active && !row_hovered) ImGui::PopStyleColor();
         }
         ImGui::EndTable();
     }
-
     ImGui::PopStyleVar();
 }
 
