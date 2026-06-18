@@ -6,6 +6,8 @@
 
 #include "ui/fonts.hpp"
 
+class Player;
+
 // ── Shared animation state ──────────────────────────────────────────────────
 
 struct SmoothAnimState {
@@ -57,4 +59,4 @@ struct PlaylistGroup {
 };
 
 // Global entry point exposed to other files
-void StrictTwoTierPlaylistView(const char* str_id, const std::vector<PlaylistGroup>& list);
+void StrictTwoTierPlaylistView(const char* str_id, const std::vector<PlaylistGroup>& list, Player& player);

@@ -1,10 +1,23 @@
-#include "imgui.h"
+#include <imgui.h>
 #include <imgui_internal.h>
 #include <vector>
 #include <string>
+#include <cstdio>
 
 #include "ui/tab_panel.hpp"
 #include "ui/imgui_widgets.hpp"
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+static std::string formatDurationShort(int secs) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%d:%02d", secs / 60, secs % 60);
+    return buf;
+}
+
+// ── TabPanel ──────────────────────────────────────────────────────────────────
+
+TabPanel::TabPanel(Player& player) : player_(player) {}
 
 void TabPanel::drawTabBar()
 {
@@ -12,77 +25,123 @@ void TabPanel::drawTabBar()
 
     const ImGuiStyle& style = ImGui::GetStyle();
     const float spacing = style.ItemSpacing.x;
-    
+
     float totalWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-    const float buttonW = (totalWidth - spacing) / 2.0f; 
-    
-    // Use the window's inner height instead of the available region to avoid animated resize feedback loops
+    const float buttonW = (totalWidth - spacing) / 2.0f;
     const float buttonH = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
 
-        if (SmoothRadioButton("Playlists", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == ContextView::VIEW_PLAYLIST))
-            m_activeTab = ContextView::VIEW_PLAYLIST;
-            
-        ImGui::SameLine(0, spacing);
-        
-        if (SmoothRadioButton("Up Next", {buttonW, buttonH}, ButtonFont::Bold, m_activeTab == ContextView::VIEW_QUEUE))
-            m_activeTab = ContextView::VIEW_QUEUE;
-            
-    ImGui::PopStyleColor();
+    if (SmoothRadioButton("Playlists", {buttonW, buttonH}, ButtonFont::Bold,
+                          m_activeTab == ContextView::VIEW_PLAYLIST))
+        m_activeTab = ContextView::VIEW_PLAYLIST;
 
-    ImGui::PopStyleVar(); // Restore global rounding and padding
+    ImGui::SameLine(0, spacing);
+
+    if (SmoothRadioButton("Up Next", {buttonW, buttonH}, ButtonFont::Bold,
+                          m_activeTab == ContextView::VIEW_QUEUE))
+        m_activeTab = ContextView::VIEW_QUEUE;
+
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
 }
 
 void TabPanel::drawTabContent()
 {
+    // Push flag to ignore keyboard tab-focus and keyboard navigation indexing inside our tabs
+    ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
+
     if (m_activeTab == ContextView::VIEW_PLAYLIST)
         drawPlaylistContent();
-    else if (m_activeTab == ContextView::VIEW_QUEUE)
+    else
         drawQueueContent();
+
+    ImGui::PopItemFlag();
 }
+
+// ── Playlist tab ──────────────────────────────────────────────────────────────
 
 void TabPanel::drawPlaylistContent()
 {
-    static const std::vector<PlaylistGroup> mock_playlists = {
-        {
-            "Synthwave Essentials", 
-            {
-                {"Laser Driver", "4:12"},
-                {"Outrun Horizon", "3:58"},
-                {"Grid Crawler", "5:04"}
-            }
-        },
-        {
-            "Chill Ambient Vibes", 
-            {
-                {"Liquid Ether", "6:21"},
-                {"Dust Particles", "2:45"}
-            }
-        },
-        {
-            "Empty Collection Focus", 
-            {}
-        }
-    };
+    const auto& playlists = player_.playlists();
 
-    StrictTwoTierPlaylistView("##playlist_tree_view", mock_playlists);
+    std::vector<PlaylistGroup> groups;
+    groups.reserve(playlists.size());
+
+    for (const Playlist& pl : playlists) {
+        PlaylistGroup g;
+        g.name = pl.getName();
+        for (const fs::path& p : pl.getPlaylistTracks()) {
+            PlaylistItemTrack item;
+            item.name     = p.stem().string();
+            item.duration = "";
+            g.tracks.push_back(std::move(item));
+        }
+        groups.push_back(std::move(g));
+    }
+
+    ImGui::BeginChild("##tab_pl_scroll", ImVec2(0.0f, 0.0f), false);
+
+    if (groups.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("No playlists yet.");
+        ImGui::PopStyleColor();
+    } else {
+        // PASS player_ HERE:
+        StrictTwoTierPlaylistView("##pl_tree", groups, player_);
+    }
+
+    ImGui::EndChild();
 }
+
+// ── Queue tab ─────────────────────────────────────────────────────────────────
 
 void TabPanel::drawQueueContent()
 {
-    static const std::vector<TableRowItem> mock_queue = {
-        {"1",  "Starlight Express",   "The Midnight",      "3:44"},
-        {"2",  "Midnight Coffee Run", "Timecop1983",      "3:05"},
-        {"3",  "Cybernetic Dreams",   "FM-84",             "5:12"},
-        {"4",  "Whispering Shadows",  "Gunship",           "4:34"},
-        {"5",  "Solar Wind Flares",   "Scandroid",         "3:19"},
-        {"6",  "Neon Drift",          "Kavinsky",          "4:02"},
-        {"7",  "Glass Horizon",       "Michael McCann",    "3:51"},
-        {"8",  "Velvet Circuit",      "Waveshaper",        "2:58"},
-    };
+    const std::vector<const Track*> tracks = player_.queueTracks();
 
-    static int selected_queue_idx = -1;
+    std::vector<TableRowItem> rows;
+    rows.reserve(tracks.size());
 
-    SmoothHoverTable("##queue_table", mock_queue, &selected_queue_idx);
+    for (std::size_t i = 0; i < tracks.size(); ++i) {
+        const Track* t = tracks[i];
+        TableRowItem item;
+        item.number = std::to_string(i + 1);
+        if (t) {
+            item.title    = t->getTitle().empty()
+                              ? t->getMusicPath().filename().string()
+                              : t->getTitle();
+            
+            // --- FIXED: Loop through and comma-separate all artists ---
+            std::string artistStr;
+            for (std::size_t a = 0; a < t->getArtists().size(); ++a) {
+                if (a) artistStr += ", ";
+                artistStr += t->getArtists()[a];
+            }
+            item.artist   = artistStr;
+            
+            item.duration = formatDurationShort(t->getDuration());
+        } else {
+            item.title    = "(unknown)";
+            item.artist   = "";
+            item.duration = "";
+        }
+        rows.push_back(std::move(item));
+    }
+
+    if (rows.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+        ImGui::TextUnformatted("Queue is empty.");
+        ImGui::PopStyleColor();
+        return;
+    }
+
+    // Track which item is clicked using SmoothHoverTable's return value
+    static int selectedQueueIdx = -1;
+    if (SmoothHoverTable("##queue_table", rows, &selectedQueueIdx)) {
+        // Simple click registered!
+        if (selectedQueueIdx >= 0 && selectedQueueIdx < (int)tracks.size()) {
+            player_.playQueueIndex(static_cast<std::size_t>(selectedQueueIdx));
+        }
+    }
 }

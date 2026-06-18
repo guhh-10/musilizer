@@ -26,4 +26,9 @@ class Queue {
         void addTrackToBack(const Track& t);
         bool isShuffle() const;
         bool isRepeat() const;
+
+        // Returns all paths currently enqueued, current track first.
+        std::vector<fs::path> snapshot() const {
+            return { track_queue.begin(), track_queue.end() };
+        }
 };
