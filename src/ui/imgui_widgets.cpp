@@ -374,12 +374,14 @@ bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items
  
             // Crucial: Set cursor back to the row top so the hitbox fills from top to bottom
             ImGui::SetCursorPosY(row_top_y);
-            
+            ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
+
             // Create an invisible button item matching the exact evaluated height of the row content
             if (ImGui::Selectable(selectable_id.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, content_height))) {
                 if (out_selected_index) *out_selected_index = i;
                 any_clicked = true;
             }
+            ImGui::PopItemFlag();
  
             bool row_hovered = ImGui::IsItemHovered();
             ImGui::PopStyleColor(3);

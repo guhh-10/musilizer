@@ -91,7 +91,9 @@ void MainWindow::draw()
         ImGui::PopStyleColor();
 
         ImGui::BeginChild("##tab_content", {0.0f, 0.0f}, false);
+        ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
         tabPanel_.drawTabContent();
+        ImGui::PopItemFlag();
         ImGui::EndChild();
 
     ImGui::EndChild(); // ##tab_panel
@@ -144,7 +146,9 @@ void MainWindow::draw()
         ImGui::PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_Border]);
         if (ImGui::BeginChild("##library_table_container", ImVec2(0.0f, 0.0f), false,
                               ImGuiWindowFlags_NoScrollbar)) {
+            ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
             libraryPanel_.drawTableTrack();
+            ImGui::PopItemFlag();
             ImGui::EndChild();
         }
         ImGui::PopStyleColor();

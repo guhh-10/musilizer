@@ -145,7 +145,11 @@ void LibraryPanel::drawTableTrack() {
     const float rightPad = 6.0f;
     const float contentLeftIndent = 12.0f; // This will act as our unified text alignment indent
 
+    // Push NoNav flag BEFORE BeginTable so it's active for all table interactions
+    ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
+
     if (!ImGui::BeginTable("##library_table", 4, tableFlags, ImVec2(0.0f, 0.0f))) {
+        ImGui::PopItemFlag(); // Pop NoNav before returning
         ImGui::PopStyleVar();
         return;
     }
@@ -279,6 +283,9 @@ void LibraryPanel::drawTableTrack() {
     }
 
     ImGui::EndTable();
+    
+    // Pop NoNav flag after EndTable
+    ImGui::PopItemFlag();
     ImGui::PopStyleVar();
 }
 

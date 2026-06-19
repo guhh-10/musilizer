@@ -62,7 +62,8 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     ImGui::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 
     SetupMusicPlayerLightStyle();
 
