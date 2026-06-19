@@ -17,6 +17,15 @@ static std::string fmtDuration(int secs) {
     return buf;
 }
 
+// ── Column index constants ────────────────────────────────────────────────────
+// Col 0 = "#" (row number – not sortable)
+// Col 1 = Title
+// Col 2 = Artist
+// Col 3 = Duration
+static constexpr int COL_TITLE    = 1;
+static constexpr int COL_ARTIST   = 2;
+static constexpr int COL_DURATION = 3;
+
 // ── LibraryPanel ──────────────────────────────────────────────────────────────
 
 LibraryPanel::LibraryPanel(Player& player, SearchController& search)
@@ -25,16 +34,166 @@ LibraryPanel::LibraryPanel(Player& player, SearchController& search)
     runSearch();
 }
 
+// ── Sort helpers ──────────────────────────────────────────────────────────────
+
+void LibraryPanel::cycleSort(int col) {
+    if (sortCol_ != col) {
+        // Clicking a new column always starts at ASC
+        sortCol_   = col;
+        sortState_ = SortCycleState::ASC;
+    } else {
+        switch (sortState_) {
+            case SortCycleState::NEUTRAL: sortState_ = SortCycleState::ASC;     break;
+            case SortCycleState::ASC:     sortState_ = SortCycleState::DESC;    break;
+            case SortCycleState::DESC:
+                // Back to neutral — no active sort column
+                sortState_ = SortCycleState::NEUTRAL;
+                sortCol_   = -1;
+                break;
+        }
+    }
+    runSearch();
+}
+
+void LibraryPanel::applySortToQuery(SearchQuery& q) const {
+    if (sortCol_ == -1 || sortState_ == SortCycleState::NEUTRAL) {
+        // SearchQuery defaults: TITLE / ASC — but when neutral we want relevance order.
+        // The Search service already uses score-first when text is non-empty.
+        // For empty text + neutral we just leave the default (title asc) — acceptable.
+        return;
+    }
+
+    q.sortOrder = (sortState_ == SortCycleState::ASC) ? SortOrder::ASC : SortOrder::DESC;
+
+    switch (sortCol_) {
+        case COL_TITLE:    q.sortBy = SortField::TITLE;    break;
+        case COL_ARTIST:   q.sortBy = SortField::ARTIST;   break;
+        case COL_DURATION: q.sortBy = SortField::DURATION; break;
+        default: break;
+    }
+}
+
 void LibraryPanel::runSearch() {
     SearchQuery q;
     q.text         = searchBuf_;
     q.artistFilter = artistFilter_;
-    results_       = search_.query(q);
+    applySortToQuery(q);
+    results_ = search_.query(q);
 }
 
 void LibraryPanel::setArtistFilter(const std::string& artist) {
     artistFilter_ = artist;
     runSearch();
+}
+
+// ── Column header helper ──────────────────────────────────────────────────────
+
+// Draws a clickable, hover-animated column header cell.
+// colIdx  – which column index this is (used to detect active sort)
+// label   – visible text
+// rightPad – shift label left by this much (used for "#" to right-align)
+// indent  – shift label right by this much (used for data columns)
+void LibraryPanel::drawColumnHeader(int colIdx, const char* label, float rightPad, float indent) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return;
+
+    ImGuiContext& g    = *GImGui;
+    ImGuiStyle& style  = g.Style;
+    ImDrawList* dl     = window->DrawList;
+
+    // Build the full header cell rect
+    float colW  = ImGui::GetContentRegionAvail().x;
+    float cellH = ImGui::GetTextLineHeight() + 16.0f; // same as data row approx
+    ImVec2 pos  = window->DC.CursorPos;
+    ImRect bb(pos, ImVec2(pos.x + colW, pos.y + cellH));
+
+    const bool sortable = (colIdx != 0); // "#" column is not sortable
+    ImGuiID id = sortable ? window->GetID(label) : 0;
+
+    ImGui::ItemSize(bb);
+    if (sortable && !ImGui::ItemAdd(bb, id)) return;
+    if (!sortable) { ImGui::ItemAdd(bb, 0); }
+
+    bool hovered = false, held = false, pressed = false;
+    if (sortable) {
+        pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+        if (pressed) cycleSort(colIdx);
+    }
+
+    // ── Hover background ──────────────────────────────────────────────────────
+    float& t = SmoothAnimState::GetRef(id + 7777); // offset to avoid clash
+    float speed = 12.0f;
+    if (hovered || (sortCol_ == colIdx && sortState_ != SortCycleState::NEUTRAL)) {
+        t += g.IO.DeltaTime * speed; if (t > 1.0f) t = 1.0f;
+    } else {
+        t -= g.IO.DeltaTime * speed; if (t < 0.0f) t = 0.0f;
+    }
+
+    if (t > 0.01f) {
+        ImVec4 base  = style.Colors[ImGuiCol_HeaderHovered];
+        ImU32  bgCol = ImGui::GetColorU32(ImVec4(base.x, base.y, base.z, base.w * t * 0.6f));
+        dl->AddRectFilled(bb.Min, bb.Max, bgCol, 0.0f);
+    }
+
+    // ── Label ─────────────────────────────────────────────────────────────────
+    bool isActivelySorted = sortable && sortCol_ == colIdx && sortState_ != SortCycleState::NEUTRAL;
+
+    ImVec4 textCol = isActivelySorted
+        ? style.Colors[ImGuiCol_Text]
+        : style.Colors[ImGuiCol_TextDisabled];
+    // Brighten text on hover even when not sorted
+    if (hovered && !isActivelySorted)
+        textCol = ImVec4(textCol.x * 1.3f, textCol.y * 1.3f, textCol.z * 1.3f, textCol.w);
+
+    float centerY = (bb.Min.y + bb.Max.y) * 0.5f;
+    ImVec2 labelSz = ImGui::CalcTextSize(label);
+
+    if (colIdx == 0) {
+        // "#" — right-aligned
+        float x = bb.Max.x - rightPad - labelSz.x;
+        dl->AddText(ImVec2(x, centerY - labelSz.y * 0.5f),
+                    ImGui::GetColorU32(textCol), label);
+    } else {
+        float x = bb.Min.x + indent;
+        dl->AddText(ImVec2(x, centerY - labelSz.y * 0.5f),
+                    ImGui::GetColorU32(textCol), label);
+
+        // ── Sort indicator ────────────────────────────────────────────────────
+        if (sortable) {
+            const char* indicator = nullptr;
+            if (sortCol_ == colIdx) {
+                if (sortState_ == SortCycleState::ASC)  indicator = ICON_LC_CHEVRON_UP;
+                if (sortState_ == SortCycleState::DESC) indicator = ICON_LC_CHEVRON_DOWN;
+            }
+
+            if (indicator) {
+                // Add a manual 4px offset to prevent the icon from hugging the text
+                float ix = x + labelSz.x + 4.0f;
+                ImVec4 accentCol = style.Colors[ImGuiCol_SliderGrabActive];
+                ImGui::PushFont(FontManager::icons());
+                ImVec2 iSz = ImGui::CalcTextSize(indicator);
+                dl->AddText(FontManager::icons(), FontManager::icons()->FontSize,
+                            ImVec2(ix, centerY - iSz.y * 0.5f),
+                            ImGui::GetColorU32(accentCol), indicator);
+                ImGui::PopFont();
+            } else if (hovered) {
+                // Ghost up-arrow hint on hover when column has no current sort
+                ImGui::PushFont(FontManager::icons());
+                const char* ghost = ICON_LC_CHEVRON_UP;
+                ImVec2 gSz = ImGui::CalcTextSize(ghost);
+                ImVec4 ghostCol = style.Colors[ImGuiCol_TextDisabled];
+                ghostCol.w *= t * 0.7f;
+                dl->AddText(FontManager::icons(), FontManager::icons()->FontSize,
+                            ImVec2(x + labelSz.x + 4.0f, centerY - gSz.y * 0.5f),
+                            ImGui::GetColorU32(ghostCol), ghost);
+                ImGui::PopFont();
+            }
+        }
+    }
+
+    // ── Cursor sort pointer ───────────────────────────────────────────────────
+    if (sortable && hovered)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 }
 
 // ── Search bar ────────────────────────────────────────────────────────────────
@@ -137,19 +296,14 @@ void LibraryPanel::drawSearchBar(float padding) {
 // ── Track table ───────────────────────────────────────────────────────────────
 
 void LibraryPanel::drawTableTrack() {
-    // Return cell padding back to a tight or standard value so headers stay clean
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, 0.0f));
 
     constexpr ImGuiTableFlags tableFlags =
         ImGuiTableFlags_ScrollY | ImGuiTableFlags_NoPadOuterX;
-    const float rightPad = 6.0f;
-    const float contentLeftIndent = 12.0f; // This will act as our unified text alignment indent
-
-    // Push NoNav flag BEFORE BeginTable so it's active for all table interactions
-    ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
+    const float rightPad          = 6.0f;
+    const float contentLeftIndent = 12.0f;
 
     if (!ImGui::BeginTable("##library_table", 4, tableFlags, ImVec2(0.0f, 0.0f))) {
-        ImGui::PopItemFlag(); // Pop NoNav before returning
         ImGui::PopStyleVar();
         return;
     }
@@ -159,36 +313,29 @@ void LibraryPanel::drawTableTrack() {
     ImGui::TableSetupColumn("Artist",   ImGuiTableColumnFlags_WidthStretch, 35.0f);
     ImGui::TableSetupColumn("Duration", ImGuiTableColumnFlags_WidthStretch, 15.0f);
 
-    // Header row styling
-    ImGui::PushStyleColor(ImGuiCol_Text,          ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0,0,0,0));
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive,  ImVec4(0,0,0,0));
-    ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImGui::GetStyle().Colors[ImGuiCol_Border]);
+    // ── Header row ────────────────────────────────────────────────────────────
+    // We draw headers manually (no TableHeadersRow) so we can attach click
+    // behaviour and custom sort indicators to each cell.
 
+    ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImGui::GetStyle().Colors[ImGuiCol_Border]);
     ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
 
-    // Column 0 Header (#)
     ImGui::TableSetColumnIndex(0);
-    {
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f);
-        ImVec2 cp  = ImGui::GetCursorScreenPos();
-        float  cw  = ImGui::GetContentRegionAvail().x;
-        ImVec2 ts  = ImGui::CalcTextSize("#");
-        ImGui::GetWindowDrawList()->AddText(
-            ImVec2(cp.x + cw - rightPad - ts.x, cp.y),
-            ImGui::GetColorU32(ImGuiCol_Text), "#");
-        ImGui::Dummy(ImVec2(0, ts.y + 8.0f));
-    }
-    
-    // Columns 1, 2, 3 Headers - Using custom indents matching the data rows exactly
-    ImGui::TableSetColumnIndex(1); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); ImGui::TextUnformatted("Title");
-    ImGui::TableSetColumnIndex(2); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); ImGui::TextUnformatted("Artist");
-    ImGui::TableSetColumnIndex(3); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); ImGui::TextUnformatted("Duration");
+    drawColumnHeader(0, "#", rightPad, 0.0f);
 
-    ImGui::PopStyleColor(4);
+    ImGui::TableSetColumnIndex(1);
+    drawColumnHeader(COL_TITLE, "Title", 0.0f, contentLeftIndent);
 
-    // Data rows
-    const float rowH = ImGui::GetTextLineHeight() + 16.0f;
+    ImGui::TableSetColumnIndex(2);
+    drawColumnHeader(COL_ARTIST, "Artist", 0.0f, contentLeftIndent);
+
+    ImGui::TableSetColumnIndex(3);
+    drawColumnHeader(COL_DURATION, "Duration", 0.0f, contentLeftIndent);
+
+    ImGui::PopStyleColor(); // TableHeaderBg
+
+    // ── Data rows ─────────────────────────────────────────────────────────────
+    const float rowH         = ImGui::GetTextLineHeight() + 16.0f;
     const Track* activeTrack = player_.currentTrack();
 
     for (int i = 0; i < (int)results_.size(); ++i) {
@@ -237,7 +384,7 @@ void LibraryPanel::drawTableTrack() {
         }
         ImGui::PopStyleVar(3);
 
-        // Render Column 0 (Number Sequence / Play Icon)
+        // Column 0 — Number / play icon
         ImDrawList* dl = ImGui::GetWindowDrawList();
         if (rowHov || isActive) {
             ImFont* iFont   = FontManager::icons();
@@ -254,16 +401,16 @@ void LibraryPanel::drawTableTrack() {
         // Column 1: Title
         ImGui::TableSetColumnIndex(1);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); // Unified alignment
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent);
         if (isActive) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_SeparatorActive]);
         const std::string& title = track->getTitle().empty() ? track->getMusicPath().filename().string() : track->getTitle();
         ImGui::TextUnformatted(title.c_str());
         if (isActive) ImGui::PopStyleColor();
 
-        // Column 2: Artist List
+        // Column 2: Artist list
         ImGui::TableSetColumnIndex(2);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); // Unified alignment
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent);
         std::string artistStr;
         for (std::size_t a = 0; a < track->getArtists().size(); ++a) {
             if (a) artistStr += ", ";
@@ -276,16 +423,13 @@ void LibraryPanel::drawTableTrack() {
         // Column 3: Duration
         ImGui::TableSetColumnIndex(3);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent); // Unified alignment
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent);
         if (!isActive && !rowHov) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
         ImGui::TextUnformatted(fmtDuration(track->getDuration()).c_str());
         if (!isActive && !rowHov) ImGui::PopStyleColor();
     }
 
     ImGui::EndTable();
-    
-    // Pop NoNav flag after EndTable
-    ImGui::PopItemFlag();
     ImGui::PopStyleVar();
 }
 
@@ -320,7 +464,6 @@ void LibraryPanel::drawContextMenu(const Track* track) {
             if (SmoothScaleButton(ICON_LC_PLUS, ImVec2(24.0f, 0.0f), ButtonFont::Icons)) {
                 if (newPlBuf[0] != '\0') {
                     player_.addPlaylist(Playlist(newPlBuf));
-                    // Then immediately add the track
                     player_.addTrackToPlaylist(newPlBuf, *track);
                     newPlBuf[0] = '\0';
                 }

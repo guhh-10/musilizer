@@ -499,7 +499,6 @@ void RenderPlaylistGroupNode(const PlaylistGroup& group, const std::string& base
         if (pressed) {
             global_active_id = folder_id; 
             
-            // Fix double click conflict: Check if double clicked first, otherwise single click toggle
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 const auto& playlists = player.playlists();
                 if (group_idx >= 0 && group_idx < (int)playlists.size()) {
