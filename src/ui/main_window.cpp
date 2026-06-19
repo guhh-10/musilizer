@@ -131,11 +131,12 @@ void MainWindow::draw()
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_Border]);
-        if (ImGui::BeginChild("##search_header", ImVec2(0.0f, searchH), false,
-                              ImGuiWindowFlags_NoScrollbar)) {
+        
+        if (ImGui::BeginChild("##search_header", ImVec2(0.0f, searchH), false, ImGuiWindowFlags_NoScrollbar)) {
             libraryPanel_.drawSearchBar(padding);
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
+        
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
 
@@ -144,13 +145,14 @@ void MainWindow::draw()
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,   ImVec2(0.0f, 0.0f));
         ImGui::PushStyleColor(ImGuiCol_ChildBg, style.Colors[ImGuiCol_Border]);
-        if (ImGui::BeginChild("##library_table_container", ImVec2(0.0f, 0.0f), false,
-                              ImGuiWindowFlags_NoScrollbar)) {
+        
+        if (ImGui::BeginChild("##library_table_container", ImVec2(0.0f, 0.0f), false, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
             libraryPanel_.drawTableTrack();
             ImGui::PopItemFlag();
-            ImGui::EndChild();
         }
+        ImGui::EndChild();
+        
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
     }
