@@ -321,3 +321,49 @@ void Player::playQueueIndex(std::size_t index) {
         observeTransition(prev, nowPlaying_, /*skipped=*/true);
     }
 }
+
+// ── queue management extensions ──────────────────────────────────────────────
+
+void Player::moveQueueTrackUp(std::size_t index) {
+    auto tracks = queueTracks();
+    if (index == 0 || index >= tracks.size()) return;
+    
+    std::swap(tracks[index], tracks[index - 1]);
+    queue_.load(tracks);
+    emitQueueChanged();
+}
+
+void Player::moveQueueTrackDown(std::size_t index) {
+    auto tracks = queueTracks();
+    if (index + 1 >= tracks.size()) return;
+    
+    std::swap(tracks[index], tracks[index + 1]);
+    queue_.load(tracks);
+    emitQueueChanged();
+}
+
+void Player::removeQueueTrack(std::size_t index) {
+    auto tracks = queueTracks();
+    if (index >= tracks.size()) return;
+    
+    // If removing the currently playing track, stop playback
+    bool isCurrent = (index == 0);
+    
+    tracks.erase(tracks.begin() + index);
+    queue_.load(tracks);
+    emitQueueChanged();
+    
+    if (isCurrent) {
+        // If we removed the current track, stop playback
+        if (tracks.empty()) {
+            audio_.pause();
+            nowPlaying_ = nullptr;
+            playbackState_ = PlaybackState::Stopped;
+            emitTrackChanged();
+            emitPlaybackStateChanged();
+        } else {
+            // Load the new first track
+            loadTrack(tracks[0]->getMusicPath());
+        }
+    }
+}

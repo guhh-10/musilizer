@@ -69,6 +69,9 @@ class Player {
         void setShuffle(bool enabled);
         void setRepeat(bool enabled);
         void playQueueIndex(std::size_t index);
+        void moveQueueTrackUp(std::size_t index);
+        void moveQueueTrackDown(std::size_t index);
+        void removeQueueTrack(std::size_t index);
 
         // Returns ordered paths currently in the queue (current track first).
         std::vector<fs::path> queueSnapshot() const;
