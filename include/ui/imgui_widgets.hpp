@@ -6,8 +6,6 @@
 
 #include "ui/fonts.hpp"
 
-class Player;
-
 // ── Shared animation state ──────────────────────────────────────────────────
 
 struct SmoothAnimState {
@@ -45,18 +43,3 @@ struct TableRowItem {
 };
 
 bool SmoothHoverTable(const char* str_id, const std::vector<TableRowItem>& items, int* out_selected_index = nullptr);
-
-// ── StrictTwoTierPlaylistView ───────────────────────────────────────────────
-
-struct PlaylistItemTrack {
-    std::string name;
-    std::string duration;
-};
-
-struct PlaylistGroup {
-    std::string name;
-    std::vector<PlaylistItemTrack> tracks; 
-};
-
-// Global entry point exposed to other files
-void StrictTwoTierPlaylistView(const char* str_id, const std::vector<PlaylistGroup>& list, Player& player);

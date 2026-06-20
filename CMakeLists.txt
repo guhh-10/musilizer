@@ -147,6 +147,8 @@ add_library(musilizer_ui STATIC
     src/ui/library_panel.cpp
     src/ui/fonts.cpp
     src/ui/imgui_style.cpp
+    src/ui/playlist_tree_view.cpp
+    src/ui/queue_table_view.cpp
     src/ui/tab_panel.cpp
     src/ui/imgui_widgets.cpp
 )
