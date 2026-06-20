@@ -6,14 +6,7 @@
 
 #include "ui/tab_panel.hpp"
 #include "ui/imgui_widgets.hpp"
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-static std::string formatDurationShort(int secs) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%d:%02d", secs / 60, secs % 60);
-    return buf;
-}
+#include "utils/time_format.hpp"
 
 // ── TabPanel ──────────────────────────────────────────────────────────────────
 
@@ -290,7 +283,7 @@ void TabPanel::drawQueueContent()
                 ImGui::SetCursorPosY(row_top_y + vertical_offset);
             }
             
-            std::string duration = t ? formatDurationShort(t->getDuration()) : "";
+            std::string duration = t ? utils::formatDuration(t->getDuration()) : "";
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
             ImGui::TextUnformatted(duration.c_str());
             ImGui::PopStyleColor();

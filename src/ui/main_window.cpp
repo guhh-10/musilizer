@@ -10,7 +10,6 @@ MainWindow::MainWindow(Player& player, SearchController& search)
     , search_(search)
     , playerPanel_(player)
     , libraryPanel_(player, search)
-    , playlistPanel_(player)
     , tabPanel_(player)
 {}
 

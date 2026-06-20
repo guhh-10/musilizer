@@ -8,14 +8,7 @@
 #include "ui/library_panel.hpp"
 #include "ui/fonts.hpp"
 #include "ui/imgui_widgets.hpp"
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-static std::string fmtDuration(int secs) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%d:%02d", secs / 60, secs % 60);
-    return buf;
-}
+#include "utils/time_format.hpp"
 
 // ── Column index constants ────────────────────────────────────────────────────
 // Col 0 = "#" (row number – not sortable)
@@ -425,7 +418,7 @@ void LibraryPanel::drawTableTrack() {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + contentLeftIndent);
         if (!isActive && !rowHov) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
-        ImGui::TextUnformatted(fmtDuration(track->getDuration()).c_str());
+        ImGui::TextUnformatted(utils::formatDuration(track->getDuration()).c_str());
         if (!isActive && !rowHov) ImGui::PopStyleColor();
     }
 

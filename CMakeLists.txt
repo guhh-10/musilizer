@@ -119,6 +119,7 @@ add_library(musilizer_core STATIC
     src/controller/player.cpp
     src/controller/search_controller.cpp
     src/service/genre_graph.cpp
+    src/service/default_genre_graph.cpp
     src/service/recommender.cpp
     src/service/genre_graph_learner.cpp
 )
@@ -144,7 +145,6 @@ add_library(musilizer_ui STATIC
     src/ui/main_window.cpp
     src/ui/player_panel.cpp
     src/ui/library_panel.cpp
-    src/ui/playlist_panel.cpp
     src/ui/fonts.cpp
     src/ui/imgui_style.cpp
     src/ui/tab_panel.cpp
