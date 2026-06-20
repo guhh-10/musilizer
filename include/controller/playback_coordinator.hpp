@@ -8,6 +8,7 @@
 #include "model/track.hpp"
 #include "service/recommendation_coordinator.hpp"
 #include <functional>
+#include <optional>
 #include <vector>
 #include <filesystem>
 
@@ -30,7 +31,7 @@ private:
     void emitVolumeChanged(float v) const;
     void emitQueueChanged() const;
 
-    void pickAndEnqueueRecommendation();
+    std::optional<fs::path> pickAndEnqueueRecommendation(const Track& prev);
 
 public:
     std::function<void(const Track*)>   onTrackChanged;

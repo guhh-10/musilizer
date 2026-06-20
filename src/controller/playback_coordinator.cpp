@@ -71,8 +71,15 @@ void PlaybackCoordinator::stop() {
     emitPlaybackStateChanged();
 }
 
-void PlaybackCoordinator::pickAndEnqueueRecommendation() {
-    // Moved inline to next() and update() to return the path, or we can make it return optional path
+std::optional<fs::path> PlaybackCoordinator::pickAndEnqueueRecommendation(const Track& prev) {
+    auto recs = recommendationCoordinator_.recommend(lib_, prev, 5);
+    if (recs.empty()) return std::nullopt;
+
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_int_distribution<std::size_t> dis(0, recs.size() - 1);
+    const Track* sel = recs[dis(gen)].track;
+    queue_.addTrackToBack(*sel);
+    return sel->getMusicPath();
 }
 
 void PlaybackCoordinator::next() {
@@ -80,14 +87,7 @@ void PlaybackCoordinator::next() {
     auto path = queue_.next();
 
     if (!path && prev) {
-        auto recs = recommendationCoordinator_.recommend(lib_, *prev, 5);
-        if (!recs.empty()) {
-            std::mt19937 gen(std::random_device{}());
-            std::uniform_int_distribution<std::size_t> dis(0, recs.size() - 1);
-            const Track* sel = recs[dis(gen)].track;
-            queue_.addTrackToBack(*sel);
-            path = sel->getMusicPath();
-        }
+        path = pickAndEnqueueRecommendation(*prev);
     }
     if (!path) return;
     loadTrack(*path);
@@ -203,14 +203,7 @@ void PlaybackCoordinator::update() {
 
     auto path = queue_.next();
     if (!path) {
-        auto recs = recommendationCoordinator_.recommend(lib_, *prev, 5);
-        if (!recs.empty()) {
-            std::mt19937 gen(std::random_device{}());
-            std::uniform_int_distribution<std::size_t> dis(0, recs.size() - 1);
-            const Track* sel = recs[dis(gen)].track;
-            queue_.addTrackToBack(*sel);
-            path = sel->getMusicPath();
-        }
+        path = pickAndEnqueueRecommendation(*prev);
     }
     if (!path) {
         audio_.resetTrackEnded();
