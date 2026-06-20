@@ -118,6 +118,7 @@ add_library(musilizer_core STATIC
     src/repository/persistence.cpp
     src/repository/session_persistence.cpp
     src/service/search.cpp
+    src/service/metadata_reader.cpp
     src/controller/player.cpp
     src/controller/playback_coordinator.cpp
     src/controller/search_controller.cpp
@@ -194,7 +195,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/InterVariable.ttf"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Inter-Bold.ttf"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Inter-Bold.ttf"   # ← add this
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Inter-Bold.ttf"
     COMMENT "Deploying fonts to build execution directory"
 )
 
