@@ -118,6 +118,7 @@ add_library(musilizer_core STATIC
     src/service/search.cpp
     src/controller/player.cpp
     src/controller/search_controller.cpp
+    src/controller/library_sort_state.cpp
     src/service/genre_graph.cpp
     src/service/default_genre_graph.cpp
     src/service/recommender.cpp

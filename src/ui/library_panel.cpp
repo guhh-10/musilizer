@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdio>
 
+#include "controller/library_sort_state.hpp"
 #include "ui/library_panel.hpp"
 #include "ui/fonts.hpp"
 #include "ui/imgui_widgets.hpp"
@@ -27,50 +28,11 @@ LibraryPanel::LibraryPanel(Player& player, SearchController& search)
     runSearch();
 }
 
-// ── Sort helpers ──────────────────────────────────────────────────────────────
-
-void LibraryPanel::cycleSort(int col) {
-    if (sortCol_ != col) {
-        // Clicking a new column always starts at ASC
-        sortCol_   = col;
-        sortState_ = SortCycleState::ASC;
-    } else {
-        switch (sortState_) {
-            case SortCycleState::NEUTRAL: sortState_ = SortCycleState::ASC;     break;
-            case SortCycleState::ASC:     sortState_ = SortCycleState::DESC;    break;
-            case SortCycleState::DESC:
-                // Back to neutral — no active sort column
-                sortState_ = SortCycleState::NEUTRAL;
-                sortCol_   = -1;
-                break;
-        }
-    }
-    runSearch();
-}
-
-void LibraryPanel::applySortToQuery(SearchQuery& q) const {
-    if (sortCol_ == -1 || sortState_ == SortCycleState::NEUTRAL) {
-        // SearchQuery defaults: TITLE / ASC — but when neutral we want relevance order.
-        // The Search service already uses score-first when text is non-empty.
-        // For empty text + neutral we just leave the default (title asc) — acceptable.
-        return;
-    }
-
-    q.sortOrder = (sortState_ == SortCycleState::ASC) ? SortOrder::ASC : SortOrder::DESC;
-
-    switch (sortCol_) {
-        case COL_TITLE:    q.sortBy = SortField::TITLE;    break;
-        case COL_ARTIST:   q.sortBy = SortField::ARTIST;   break;
-        case COL_DURATION: q.sortBy = SortField::DURATION; break;
-        default: break;
-    }
-}
-
 void LibraryPanel::runSearch() {
     SearchQuery q;
     q.text         = searchBuf_;
     q.artistFilter = artistFilter_;
-    applySortToQuery(q);
+    sortState_.applyTo(q);
     results_ = search_.query(q);
 }
 
@@ -110,13 +72,16 @@ void LibraryPanel::drawColumnHeader(int colIdx, const char* label, float rightPa
     bool hovered = false, held = false, pressed = false;
     if (sortable) {
         pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
-        if (pressed) cycleSort(colIdx);
+        if (pressed) {
+            sortState_.cycleColumn(colIdx);
+            runSearch();
+        }
     }
 
     // ── Hover background ──────────────────────────────────────────────────────
     float& t = SmoothAnimState::GetRef(id + 7777); // offset to avoid clash
     float speed = 12.0f;
-    if (hovered || (sortCol_ == colIdx && sortState_ != SortCycleState::NEUTRAL)) {
+    if (hovered || (sortState_.sortColumn() == colIdx && sortState_.sortState() != SortCycleState::NEUTRAL)) {
         t += g.IO.DeltaTime * speed; if (t > 1.0f) t = 1.0f;
     } else {
         t -= g.IO.DeltaTime * speed; if (t < 0.0f) t = 0.0f;
@@ -129,7 +94,7 @@ void LibraryPanel::drawColumnHeader(int colIdx, const char* label, float rightPa
     }
 
     // ── Label ─────────────────────────────────────────────────────────────────
-    bool isActivelySorted = sortable && sortCol_ == colIdx && sortState_ != SortCycleState::NEUTRAL;
+    bool isActivelySorted = sortable && sortState_.sortColumn() == colIdx && sortState_.sortState() != SortCycleState::NEUTRAL;
 
     ImVec4 textCol = isActivelySorted
         ? style.Colors[ImGuiCol_Text]
@@ -154,9 +119,9 @@ void LibraryPanel::drawColumnHeader(int colIdx, const char* label, float rightPa
         // ── Sort indicator ────────────────────────────────────────────────────
         if (sortable) {
             const char* indicator = nullptr;
-            if (sortCol_ == colIdx) {
-                if (sortState_ == SortCycleState::ASC)  indicator = ICON_LC_CHEVRON_UP;
-                if (sortState_ == SortCycleState::DESC) indicator = ICON_LC_CHEVRON_DOWN;
+            if (sortState_.sortColumn() == colIdx) {
+                if (sortState_.sortState() == SortCycleState::ASC)  indicator = ICON_LC_CHEVRON_UP;
+                if (sortState_.sortState() == SortCycleState::DESC) indicator = ICON_LC_CHEVRON_DOWN;
             }
 
             if (indicator) {
