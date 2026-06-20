@@ -3,23 +3,16 @@
 #include <vector>
 
 #include "model/library.hpp"
-#include "model/audio.hpp"
-#include "model/queue.hpp"
-#include "model/play_history.hpp"
 #include "model/playlist.hpp"
 #include "model/track.hpp"
-#include "repository/persistence.hpp"
-#include "service/recommender.hpp"
-#include "config.hpp"
-
-enum class PlaybackState {
-    Stopped,
-    Playing,
-    Paused,
-};
+#include "model/playback_state.hpp"
+#include "model/playlist_store.hpp"
+#include "controller/playback_coordinator.hpp"
+#include "service/recommendation_coordinator.hpp"
 
 class Player {
     public:
+        // Callback forwarders
         std::function<void(const Track*)>   onTrackChanged;
         std::function<void(PlaybackState)>  onPlaybackStateChanged;
         std::function<void(float)>          onVolumeChanged;
@@ -28,32 +21,15 @@ class Player {
         std::function<void()>               onPlaylistsChanged;
 
     private:
-        Library&    lib_;
-        Audio       audio_;
-        Queue       queue_;
-        PlayHistory history_;
-        std::vector<Playlist> playlists_;
-        GenreGraphLearner learner_;
-        Recommender       recommender_;
-
-        const Track*  nowPlaying_     = nullptr;
-        PlaybackState playbackState_  = PlaybackState::Stopped;
-
-        bool loadAudio(const fs::path& path);
-        void loadTrack(const fs::path& path);
-        void observeTransition(const Track* prev, const Track* next, bool skipped);
-
-        void emitTrackChanged()          const;
-        void emitPlaybackStateChanged()  const;
-        void emitVolumeChanged(float v)  const;
-        void emitQueueChanged()          const;
-        void emitRecommendationsReady()  const;
-        void emitPlaylistsChanged()      const;
+        Library& lib_;
+        PlaylistStore playlistStore_;
+        RecommendationCoordinator recommendationCoordinator_;
+        PlaybackCoordinator playbackCoordinator_;
 
     public:
         explicit Player(Library& lib);
 
-        // Playback
+        // Playback (forward to PlaybackCoordinator)
         void play(const Track& t);
         void playPlaylist(const Playlist& p);
         void pause();
@@ -63,7 +39,7 @@ class Player {
         void seek(float seconds);
         void setVolume(float v);
 
-        // Queue
+        // Queue (forward to PlaybackCoordinator)
         void queueNext(const Track& t);
         void queueLast(const Track& t);
         void setShuffle(bool enabled);
@@ -73,12 +49,10 @@ class Player {
         void moveQueueTrackDown(std::size_t index);
         void removeQueueTrack(std::size_t index);
 
-        // Returns ordered paths currently in the queue (current track first).
         std::vector<fs::path> queueSnapshot() const;
-        // Resolves queue paths to Track pointers via the library (nullptr if not found).
         std::vector<const Track*> queueTracks() const;
 
-        // Playlist management
+        // Playlist management (forward to PlaylistStore)
         const std::vector<Playlist>& playlists() const;
         void addPlaylist(Playlist p);
         void removePlaylist(const std::string& name);
@@ -87,23 +61,23 @@ class Player {
         void moveTrackInPlaylist(const std::string& playlistName, int from, int to);
         void playPlaylistStartingAt(const Playlist& p, int startIndex);
 
-        // Persistence
+        // Persistence (forward to SessionPersistence)
         void saveState();
         void loadState();
 
         // Tick
         void update();
 
-        // Read state
+        // Read state (forward to PlaybackCoordinator)
         const Track*  currentTrack()   const;
         PlaybackState playbackState()  const;
         float         volume()         const;
         bool          isShuffle()      const;
         bool          isRepeat()       const;
         float         position()       const;
-        int           currentDuration() const;  // seconds; 0 if nothing loaded
+        int           currentDuration() const;
 
-        // Recommendations
+        // Recommendations (forward to RecommendationCoordinator)
         std::vector<RecommendResult> recommend(std::size_t limit = 10) const;
-        const GenreGraphLearner& learner() const { return learner_; }
+        const GenreGraphLearner& learner() const { return recommendationCoordinator_.learner(); }
 };

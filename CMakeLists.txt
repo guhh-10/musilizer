@@ -113,15 +113,19 @@ add_library(musilizer_core STATIC
     src/model/audio_impl.cpp
     src/model/queue.cpp
     src/model/playlist.cpp
+    src/model/playlist_store.cpp
     src/model/play_history.cpp
     src/repository/persistence.cpp
+    src/repository/session_persistence.cpp
     src/service/search.cpp
     src/controller/player.cpp
+    src/controller/playback_coordinator.cpp
     src/controller/search_controller.cpp
     src/controller/library_sort_state.cpp
     src/service/genre_graph.cpp
     src/service/default_genre_graph.cpp
     src/service/recommender.cpp
+    src/service/recommendation_coordinator.cpp
     src/service/genre_graph_learner.cpp
 )
 
