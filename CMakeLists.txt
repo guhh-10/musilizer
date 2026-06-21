@@ -62,7 +62,29 @@ FetchContent_Declare(
     GIT_SHALLOW     TRUE
 )
 
-FetchContent_MakeAvailable(IconFontCppHeader tag miniaudio json Catch2 SDL3 imgui)
+# Added kissfft dependency
+FetchContent_Declare(
+    kissfft
+    GIT_REPOSITORY  https://github.com/mborgerding/kissfft.git
+    GIT_TAG         131.2.0
+    GIT_SHALLOW     TRUE
+)
+# Prevent kissfft from installing files globally during local build
+set(KISSFFT_STATIC ON CACHE BOOL "" FORCE)
+set(KISSFFT_TEST OFF CACHE BOOL "" FORCE)
+set(KISSFFT_TESTS OFF CACHE BOOL "" FORCE)
+set(KISSFFT_TOOLS OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(
+    IconFontCppHeader
+    tag
+    miniaudio
+    json
+    Catch2
+    SDL3
+    imgui
+    kissfft
+)
 
 # TagLib include dirs
 set(TAGLIB_INCLUDE_DIRS
@@ -128,6 +150,7 @@ add_library(musilizer_core STATIC
     src/service/recommender.cpp
     src/service/recommendation_coordinator.cpp
     src/service/genre_graph_learner.cpp
+    src/service/fft_analyzer.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
@@ -139,6 +162,7 @@ target_include_directories(musilizer_core PUBLIC
 target_link_libraries(musilizer_core PUBLIC
     tag
     nlohmann_json::nlohmann_json
+    kissfft::kissfft
 )
 
 musilizer_set_warnings(musilizer_core)

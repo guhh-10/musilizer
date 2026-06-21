@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "config.hpp"
+#include "model/audio_ring_buffer.hpp"
 
 class Audio {
     private:
@@ -14,6 +15,8 @@ class Audio {
         std::atomic<bool>  seeking = false;
         std::atomic<bool>  track_ended = false;
         std::atomic<bool>  decoder_initialized = false;
+
+        AudioRingBuffer<4096> ring_;
 
         static void dataCallback(
             ma_device* device, void* output, const void* input, ma_uint32 frameCount);
@@ -38,4 +41,6 @@ class Audio {
         float getPosition() const;
         void setVolume(float volume);
         float getVolume() const;
+
+        int getSamples(float* out, int count) const;
 };

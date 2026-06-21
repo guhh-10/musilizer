@@ -55,6 +55,10 @@ void Audio::dataCallback(ma_device* device, void* output, const void* input, ma_
         self->track_ended.store(true);
     }
 
+    if (frameRead > 0)
+        self->ring_.write(static_cast<const float*>(output),
+                          static_cast<int>(frameRead) * 2);
+
     (void)input;
 }
 
@@ -90,20 +94,15 @@ void Audio::resetTrackEnded() {
 }
 
 void Audio::load(const fs::path& music_path) {
-    // 1. Capture the ended state before doing anything
     bool ended_naturally = track_ended.load();
 
     if (decoder_initialized.load()) {
-        // 2. Only fade out if we are actively interrupting a song.
-        // Fading out silence is pointless and leaves the callback running.
         if (!ended_naturally) {
             fadeOut();
         }
         ma_device_stop(&device);
     }
 
-    // 3. Reset the flag HERE, safely after the device is stopped.
-    // This prevents residual callbacks from resurrecting the flag!
     track_ended.store(false);
 
     {
@@ -172,4 +171,8 @@ void Audio::setVolume(float volume) {
 
 float Audio::getVolume() const {
     return user_volume.load();
+}
+
+int Audio::getSamples(float* out, int count) const {
+    return ring_.read_latest(out, count);
 }
