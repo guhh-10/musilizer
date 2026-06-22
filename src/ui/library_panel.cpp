@@ -350,7 +350,7 @@ void LibraryPanel::drawTableTrack() {
             ImU32   iCol    = isActive ? ImGui::GetColorU32(ImGuiCol_PlotLinesHovered) : ImGui::GetColorU32(ImGuiCol_Text);
             dl->AddText(iFont, iFont->FontSize, ImVec2(rightEdge - iSize.x, centerY - iSize.y * 0.5f), iCol, ICON_LC_PLAY);
         } else {
-            char numBuf[8];
+            char numBuf[12];
             snprintf(numBuf, sizeof(numBuf), "%d", i + 1);
             ImVec2 ts = ImGui::CalcTextSize(numBuf);
             dl->AddText(ImVec2(rightEdge - ts.x, centerY - ts.y * 0.5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), numBuf);
