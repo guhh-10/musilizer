@@ -7,6 +7,20 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ==========================================
+# Optimization flags (Release builds)
+# ==========================================
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        add_compile_options(/O2 /GL /Gy)
+        add_link_options(/LTCG)
+    else()
+        add_compile_options(-O3 -march=native -funroll-loops -fomit-frame-pointer)
+        add_link_options(-flto=auto)
+    endif()
+endif()
+
+# ==========================================
 # Dependencies (FetchContent)
 # ==========================================
 
