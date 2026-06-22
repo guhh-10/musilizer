@@ -19,6 +19,5 @@ private:
 
     std::vector<float> sample_buf_;
 
-    static constexpr int NUM_BARS = 40;
     static constexpr int SAMPLE_COUNT = FftAnalyzer::INPUT_SAMPLES; // 2048 stereo floats
 };

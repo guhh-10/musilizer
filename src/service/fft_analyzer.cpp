@@ -20,7 +20,6 @@ FftAnalyzer::FftAnalyzer() {
   cpx_.resize(FFT_SIZE / 2 + 1);
   magnitude_.resize(FFT_SIZE / 2, 0.0f);
   bins_.resize(NUM_BINS, 0.0f);
-  peaks_.resize(NUM_BINS, 0.0f);
 }
 
 FftAnalyzer::~FftAnalyzer() { kiss_fftr_free(cfg_); }
@@ -48,25 +47,25 @@ const std::vector<float> &FftAnalyzer::analyze(const float *samples,
     float im = cpx_[i].i * scale;
     float mag = std::sqrt(r * r + im * im);
 
-    // Dynamic range compression: taking the square root of the magnitude
-    // makes quieter sounds more visible, making the visualizer feel more
-    // "alive".
-    mag = std::sqrt(mag);
+    // Convert magnitude to decibels
+    float epsilon = 1e-6f;
+    float db = 20.0f * std::log10(mag + epsilon);
 
-    // High frequency boost: music has less energy in the highs (pink noise
-    // curve). This boosts the higher bins so they aren't completely flat
-    // compared to the bass.
-    float freq_boost = 1.0f + (static_cast<float>(i) / (FFT_SIZE / 2)) * 2.5f;
+    // Dynamic range mapping
+    float minDecibels = -90.0f;
+    float maxDecibels = -10.0f;
+    float normalized = (db - minDecibels) / (maxDecibels - minDecibels);
 
-    // The final multiplier here (2.0f) is the overall sensitivity.
-    // Increase this number if the bars are still too low, or decrease if they
-    // clip at the top!
-    magnitude_[i] = mag * freq_boost * 3.0f;
+    // Clamp between 0.0f and 1.0f
+    magnitude_[i] = std::clamp(normalized, 0.0f, 1.0f);
   }
 
   const int magBins = FFT_SIZE / 2;
-  const float logLo = std::log2(1.0f);                            // bin 1
-  const float logHi = std::log2(static_cast<float>(magBins - 1)); // bin 511
+
+  const float logLo = std::log2(2.0f);
+  const float logHi = std::log2(static_cast<float>(magBins - 1));
+
+  int prev_hi = 2;
 
   for (int b = 0; b < NUM_BINS; ++b) {
     float t0 = static_cast<float>(b) / NUM_BINS;
@@ -74,25 +73,21 @@ const std::vector<float> &FftAnalyzer::analyze(const float *samples,
 
     int lo = static_cast<int>(std::pow(2.0f, logLo + t0 * (logHi - logLo)));
     int hi = static_cast<int>(std::pow(2.0f, logLo + t1 * (logHi - logLo)));
-    lo = std::clamp(lo, 1, magBins - 1);
+
+    // Guarantee this bin starts strictly after the previous one ended.
+    lo = std::max(lo, prev_hi);
+    lo = std::clamp(lo, 2, magBins - 1);
+    // Guarantee at least 1 FFT bucket per display bin.
+    hi = std::max(hi, lo + 1);
     hi = std::clamp(hi, lo + 1, magBins);
+    prev_hi = hi;
 
     float peak = 0.0f;
     for (int i = lo; i < hi; ++i)
       peak = std::max(peak, magnitude_[i]);
 
-    float alpha = (peak > bins_[b]) ? alphaRise : alphaFall;
-    bins_[b] = alpha * peak + (1.0f - alpha) * bins_[b];
-
-    if (bins_[b] > peaks_[b])
-      peaks_[b] = bins_[b];
+    bins_[b] = (smoothingTimeConstant * bins_[b]) + ((1.0f - smoothingTimeConstant) * peak);
   }
 
   return bins_;
-}
-
-void FftAnalyzer::update(float dt) {
-  float drop = peakDecay * dt;
-  for (float &p : peaks_)
-    p = std::max(0.0f, p - drop);
 }
