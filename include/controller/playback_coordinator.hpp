@@ -78,6 +78,7 @@ public:
     void update();
 
     Audio& audio() { return audio_; }
+    const Audio& audio() const { return audio_; }
     Queue& queue() { return queue_; }
     PlayHistory& history() { return history_; }
     

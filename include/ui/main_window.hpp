@@ -5,13 +5,11 @@
 #include "ui/player_panel.hpp"
 #include "ui/library_panel.hpp"
 #include "ui/tab_panel.hpp"
-
-// MainWindow owns all panels and lays them out. Call draw() once per frame.
+#include "ui/waveform_panel.hpp"
 
 class MainWindow {
     public:
         MainWindow(Player& player, SearchController& search);
-
         void draw();
 
     private:
@@ -21,4 +19,5 @@ class MainWindow {
         PlayerPanel   playerPanel_;
         LibraryPanel  libraryPanel_;
         TabPanel      tabPanel_;
+        WaveformPanel waveformPanel_;
 };

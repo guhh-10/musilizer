@@ -11,6 +11,7 @@ MainWindow::MainWindow(Player& player, SearchController& search)
     , playerPanel_(player)
     , libraryPanel_(player, search)
     , tabPanel_(player)
+    , waveformPanel_(player)
 {}
 
 void MainWindow::draw()
@@ -34,11 +35,11 @@ void MainWindow::draw()
     ImGui::Begin("##root", nullptr, rootFlags);
     ImGui::PopStyleVar(2);
 
-    const float leftColW     = 268.0f;
-    const float rightBottomH = 130.0f;
-    const float tabBarH      = 36.0f;
-    const float totalH       = ImGui::GetContentRegionAvail().y;
-    const float leftHalfH    = totalH / 1.8f;
+    const float leftColW      = 268.0f;
+    const float tabBarH       = 36.0f;
+    const float totalH        = ImGui::GetContentRegionAvail().y;
+    const float leftHalfH     = totalH / 1.8f;
+    const float rightBottomH  = totalH * 0.30f;
 
     ImVec4 borderColor = ImGui::GetStyle().Colors[ImGuiCol_Border];
 
@@ -159,7 +160,7 @@ void MainWindow::draw()
 
     // Waveform / seek placeholder
     ImGui::BeginChild("##waveform", {0.0f, 0.0f}, true, ImGuiWindowFlags_NoScrollbar);
-    // TODO: waveform / FFT visualizer
+    waveformPanel_.draw();
     ImGui::EndChild();
 
     ImGui::PopStyleVar(2);

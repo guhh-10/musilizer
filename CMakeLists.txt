@@ -180,6 +180,7 @@ add_library(musilizer_ui STATIC
     src/ui/playlist_tree_view.cpp
     src/ui/queue_table_view.cpp
     src/ui/tab_panel.cpp
+    src/ui/waveform_panel.cpp
     src/ui/imgui_widgets.cpp
 )
 
