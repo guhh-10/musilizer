@@ -45,7 +45,7 @@ jobs:
           cmake-version: '4.3'
 
       - name: Configure
-        run: cmake --preset default
+        run: cmake --preset optimized
 
       - name: Build
         run: cmake --build --preset default

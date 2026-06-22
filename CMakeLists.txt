@@ -1,8 +1,24 @@
 cmake_minimum_required(VERSION 4.0)
 project(musilizer)
 
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ==========================================
+# Optimization flags (Release builds)
+# ==========================================
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        add_compile_options(/O2 /GL /Gy)
+        add_link_options(/LTCG)
+    else()
+        add_compile_options(-O3 -march=native -funroll-loops -fomit-frame-pointer)
+        add_link_options(-flto=auto)
+    endif()
+endif()
 
 # ==========================================
 # Dependencies (FetchContent)
@@ -60,7 +76,29 @@ FetchContent_Declare(
     GIT_SHALLOW     TRUE
 )
 
-FetchContent_MakeAvailable(IconFontCppHeader tag miniaudio json Catch2 SDL3 imgui)
+# Added kissfft dependency
+FetchContent_Declare(
+    kissfft
+    GIT_REPOSITORY  https://github.com/mborgerding/kissfft.git
+    GIT_TAG         131.2.0
+    GIT_SHALLOW     TRUE
+)
+# Prevent kissfft from installing files globally during local build
+set(KISSFFT_STATIC ON CACHE BOOL "" FORCE)
+set(KISSFFT_TEST OFF CACHE BOOL "" FORCE)
+set(KISSFFT_TESTS OFF CACHE BOOL "" FORCE)
+set(KISSFFT_TOOLS OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(
+    IconFontCppHeader
+    tag
+    miniaudio
+    json
+    Catch2
+    SDL3
+    imgui
+    kissfft
+)
 
 # TagLib include dirs
 set(TAGLIB_INCLUDE_DIRS
@@ -111,14 +149,22 @@ add_library(musilizer_core STATIC
     src/model/audio_impl.cpp
     src/model/queue.cpp
     src/model/playlist.cpp
+    src/model/playlist_store.cpp
     src/model/play_history.cpp
     src/repository/persistence.cpp
+    src/repository/session_persistence.cpp
     src/service/search.cpp
+    src/service/metadata_reader.cpp
     src/controller/player.cpp
+    src/controller/playback_coordinator.cpp
     src/controller/search_controller.cpp
+    src/controller/library_sort_state.cpp
     src/service/genre_graph.cpp
+    src/service/default_genre_graph.cpp
     src/service/recommender.cpp
+    src/service/recommendation_coordinator.cpp
     src/service/genre_graph_learner.cpp
+    src/service/fft_analyzer.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
@@ -130,6 +176,7 @@ target_include_directories(musilizer_core PUBLIC
 target_link_libraries(musilizer_core PUBLIC
     tag
     nlohmann_json::nlohmann_json
+    kissfft::kissfft
 )
 
 musilizer_set_warnings(musilizer_core)
@@ -142,9 +189,13 @@ add_library(musilizer_ui STATIC
     src/ui/main_window.cpp
     src/ui/player_panel.cpp
     src/ui/library_panel.cpp
-    src/ui/playlist_panel.cpp
     src/ui/fonts.cpp
     src/ui/imgui_style.cpp
+    src/ui/playlist_tree_view.cpp
+    src/ui/queue_table_view.cpp
+    src/ui/tab_panel.cpp
+    src/ui/waveform_panel.cpp
+    src/ui/imgui_widgets.cpp
 )
 
 target_include_directories(musilizer_ui PUBLIC
@@ -183,7 +234,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/InterVariable.ttf"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Inter-Bold.ttf"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Inter-Bold.ttf"   # ← add this
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Inter-Bold.ttf"
     COMMENT "Deploying fonts to build execution directory"
 )
 

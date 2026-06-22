@@ -10,7 +10,8 @@ class PlayerPanel {
     public:
         explicit PlayerPanel(Player& player);
 
-        void draw();
+        void drawPlayerZone();
+        void drawAlbumArt();
 
     private:
         Player& player_;

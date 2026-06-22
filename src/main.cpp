@@ -39,7 +39,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     }
 
     SDL_Window* window = SDL_CreateWindow(
-        "Musilizer", 1440, 680,
+        "Musilizer", 920, 680,
         SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
     );
     if (!window) {
@@ -56,17 +56,16 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_SetWindowMinimumSize(window, 1440, 680);
-
     // ── ImGui init ────────────────────────────────────────────────────────────
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
 
-    SetupModernDarkStyle();
+    SetupMusicPlayerLightStyle();
 
     FontManager::init(exeDir.string());
 
@@ -99,6 +98,11 @@ int main([[maybe_unused]] int argc, char* argv[]) {
         ImGui::NewFrame();
 
         ui.draw();
+
+        // ── DEBUG TOOLS ───────────────────────────────────────────────────────
+        // This opens the built-in ImGui metrics debugger window overlay.
+        ImGui::ShowMetricsWindow(); 
+        // ──────────────────────────────────────────────────────────────────────
 
         // Render
         ImGui::Render();

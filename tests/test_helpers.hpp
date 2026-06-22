@@ -24,6 +24,7 @@ struct ScopedConfigRoot {
     fs::path old_playlist;
     fs::path old_setting;
     fs::path old_history;
+    fs::path old_learner;
 
     explicit ScopedConfigRoot(const fs::path& root) {
         old_root     = config::ROOT;
@@ -32,6 +33,7 @@ struct ScopedConfigRoot {
         old_playlist = config::PLAYLIST;
         old_setting  = config::SETTING;
         old_history  = config::HISTORY;
+        old_learner  = config::LEARNER;
         config::init(root);
     }
 
@@ -42,6 +44,7 @@ struct ScopedConfigRoot {
         config::PLAYLIST = old_playlist;
         config::SETTING  = old_setting;
         config::HISTORY  = old_history;
+        config::LEARNER  = old_learner;
     }
 };
 
