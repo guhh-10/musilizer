@@ -105,11 +105,6 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
         ui.draw();
 
-        // ── DEBUG TOOLS ───────────────────────────────────────────────────────
-        // This opens the built-in ImGui metrics debugger window overlay.
-        ImGui::ShowMetricsWindow(); 
-        // ──────────────────────────────────────────────────────────────────────
-
         // Render
         ImGui::Render();
         SDL_SetRenderDrawColor(renderer, 18, 18, 18, 255);
