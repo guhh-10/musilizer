@@ -7,10 +7,18 @@
 
 class Library;
 
+struct HistoryNode {
+    fs::path     path;
+    HistoryNode* prev = nullptr;
+    HistoryNode* next = nullptr;
+};
+
 class PlayHistory {
     private:
-        std::vector<fs::path> history;
-        int cursor = -1;
+        HistoryNode* head_   = nullptr;
+        HistoryNode* tail_   = nullptr;
+        HistoryNode* cursor_ = nullptr;
+        int          size_   = 0;
 
     public:
         void push(const Track& t);
@@ -19,6 +27,7 @@ class PlayHistory {
         std::optional<fs::path> current() const;
         bool canGoBack() const;
         bool canGoForward() const;
-        const std::vector<fs::path>& getHistory() const;
+        std::vector<fs::path> getHistory() const;
         void clear();
+        ~PlayHistory();
 };

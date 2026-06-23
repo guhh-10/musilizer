@@ -7,6 +7,7 @@
 #include "controller/library_sort_state.hpp"
 #include "controller/search_controller.hpp"
 #include "service/search.hpp"
+#include "utils/stack.hpp"
 
 // Draws the main track browser on the right side:
 // search bar at top, scrollable track list below.
@@ -34,6 +35,7 @@ class LibraryPanel {
         char                      searchBuf_[256] = {};
         std::string               artistFilter_;
         std::vector<SearchResult> results_;
+        Stack<std::string>        filterHistory_;
 
         LibrarySortState sortState_;
 

@@ -48,7 +48,7 @@ void Search::rebuild(const Library& lib) {
         const fs::path& p = track.getMusicPath();
 
         for (const std::string& word : tokenize(track.getTitle()))
-            title_index[lower(word)].insert(p);
+            title_index.insert(lower(word), p);
 
         for (const std::string& artist : track.getArtists())
             artist_index[lower(artist)].insert(p);
@@ -63,15 +63,10 @@ std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q
     std::set<fs::path> candidates;
 
     if (!lowerText.empty()) {
-        // Title token hits — prefix scan from lower_bound. All artist and title
-        // strings are ASCII-safe after toLower so this is reliable.
+        // Title token hits — prefix scan
         for (const std::string& token : tokenize(lowerText)) {
-            auto it = title_index.lower_bound(token);
-            while (it != title_index.end() &&
-                   it->first.substr(0, token.size()) == token) {
-                candidates.insert(it->second.begin(), it->second.end());
-                ++it;
-            }
+            std::set<fs::path> matches = title_index.prefixSearch(token);
+            candidates.insert(matches.begin(), matches.end());
         }
 
         for (const auto& [artist, paths] : artist_index) {
@@ -107,6 +102,14 @@ std::vector<SearchResult> Search::query(const Library& lib, const SearchQuery& q
 
         results.push_back({track, score});
     }
+
+    // After filtering loop, before sort — for diagnostic / future use:
+    int tracksWithArtist = std::count_if(
+        results.begin(), results.end(),
+        [](const SearchResult& r) {
+            return !r.track->getArtists().empty();
+        });
+    (void)tracksWithArtist; // suppress unused warning; expose via return struct or log if needed
 
     // 3. sort
 

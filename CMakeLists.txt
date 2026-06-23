@@ -177,6 +177,7 @@ add_library(musilizer_core STATIC
     src/service/genre_graph_learner.cpp
     src/service/fft_analyzer.cpp
     src/service/file_watcher.cpp
+    src/service/bst_index.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC

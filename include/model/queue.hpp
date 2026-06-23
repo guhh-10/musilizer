@@ -1,19 +1,34 @@
 #pragma once
 #include <algorithm>
 #include <random>
-#include <deque>
 #include <vector>
 #include <optional>
+#include <filesystem>
 
 #include "config.hpp"
 #include "model/track.hpp"
 
+namespace fs = std::filesystem;
+
+struct QueueNode {
+    fs::path   path;
+    QueueNode* next = nullptr;
+};
+
 class Queue {
     private:
-        std::deque<fs::path> track_queue;
-        std::deque<fs::path> original_order;
-        bool shuffle = false;
-        bool repeat  = false;
+        QueueNode* head_          = nullptr;
+        QueueNode* tail_          = nullptr;
+        QueueNode* origin_head_   = nullptr;
+        QueueNode* origin_tail_   = nullptr;
+        int        size_          = 0;
+        bool       shuffle_       = false;
+        bool       repeat_        = false;
+
+        void clearQueue();
+        void clearOrigin();
+        void rebuildFromOrigin();
+        void makeCircularIfRepeat();
 
     public:
         void load(const std::vector<const Track*>& tracks);
@@ -27,8 +42,6 @@ class Queue {
         bool isShuffle() const;
         bool isRepeat() const;
 
-        // Returns all paths currently enqueued, current track first.
-        std::vector<fs::path> snapshot() const {
-            return { track_queue.begin(), track_queue.end() };
-        }
+        std::vector<fs::path> snapshot() const;
+        ~Queue();
 };

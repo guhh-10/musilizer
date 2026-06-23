@@ -37,6 +37,8 @@ void LibraryPanel::runSearch() {
 }
 
 void LibraryPanel::setArtistFilter(const std::string& artist) {
+    if (!artist.empty())
+        filterHistory_.push(artistFilter_); // save previous before overwriting
     artistFilter_ = artist;
     runSearch();
 }
@@ -171,6 +173,15 @@ void LibraryPanel::drawSearchBar(float padding) {
     ImGui::TextUnformatted("Library");
     ImGui::PopFont();
     ImGui::SameLine();
+
+    if (!filterHistory_.empty()) {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 8.0f);
+        if (ImGui::SmallButton(ICON_LC_ARROW_LEFT)) {
+            artistFilter_ = filterHistory_.pop();
+            runSearch();
+        }
+        ImGui::SameLine();
+    }
 
     // "Artist: <name>" indicator when filtered
     if (!artistFilter_.empty()) {

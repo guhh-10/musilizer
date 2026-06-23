@@ -20,5 +20,11 @@ class GenreGraph {
         // All genre nodes
         std::vector<std::string> nodes() const;
 
+        // BFS: genres reachable from `start`, up to `maxDepth` hops, ordered by discovery
+        std::vector<std::string> bfs(const std::string& start, int maxDepth = 2) const;
+
+        // DFS: all genres reachable from `start` (no depth limit)
+        std::vector<std::string> dfs(const std::string& start) const;
+
         void clear();
 };

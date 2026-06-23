@@ -50,13 +50,19 @@ std::vector<RecommendResult> Recommender::recommendByGenres(
     const Track*                    exclude,
     std::size_t                     limit) const
 {
+    std::vector<std::string> expandedGenres = seedGenres;
+    for (const auto& g : seedGenres) {
+        auto reachable = graph_.bfs(g, /*maxDepth=*/1);
+        expandedGenres.insert(expandedGenres.end(), reachable.begin(), reachable.end());
+    }
+
     std::vector<RecommendResult> scored;
     scored.reserve(lib.getTracks().size());
 
     for (const auto& [path, track] : lib.getTracks()) {
         if (exclude && track.getMusicPath() == exclude->getMusicPath())
             continue;
-        float s = scoreCandidate(track, seedGenres);
+        float s = scoreCandidate(track, expandedGenres);
         scored.push_back({&track, s});
     }
 

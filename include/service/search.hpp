@@ -6,6 +6,7 @@
 
 #include "model/library.hpp"
 #include "model/track.hpp"
+#include "service/bst_index.hpp"
 
 enum class SortField {
     TITLE,
@@ -34,7 +35,7 @@ struct SearchResult {
 
 class Search {
     private:
-        std::map<std::string, std::set<fs::path>> title_index;
+        BSTIndex title_index;
         std::map<std::string, std::set<fs::path>> artist_index;
 
         static std::vector<std::string> tokenize(const std::string& s);
