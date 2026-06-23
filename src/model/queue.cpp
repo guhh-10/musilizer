@@ -72,6 +72,8 @@ bool Queue::hasNext() const {
 std::optional<fs::path> Queue::next() {
     if (!head_) return std::nullopt;
 
+    if (repeat_ && tail_) tail_->next = nullptr;
+
     QueueNode* old = head_;
     if (tail_ == head_) tail_ = nullptr;
     head_ = head_->next;
