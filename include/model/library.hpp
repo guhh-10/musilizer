@@ -18,4 +18,5 @@ class Library {
         const std::unordered_map<fs::path, Track, PathHash>& getTracks() const;
         const Track* findByPath(const fs::path& path) const;
         void addTrack(Track t);
+        bool removeTrack(const fs::path& path);
 };

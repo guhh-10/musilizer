@@ -1,6 +1,8 @@
 #include "controller/player.hpp"
+#include "model/music_directory.hpp"
 #include "repository/session_persistence.hpp"
 #include <algorithm>
+#include <iostream>
 
 Player::Player(Library &lib)
     : lib_(lib), playlistStore_(), recommendationCoordinator_(),
@@ -32,8 +34,13 @@ Player::Player(Library &lib)
   };
 }
 
-// ── playback
-// ──────────────────────────────────────────────────────────────────
+// ── file watching ─────────────────────────────────────────────────────────────
+
+void Player::startWatching() {
+  fileWatcher_.startWatching();
+}
+
+// ── playback ──────────────────────────────────────────────────────────────────
 
 void Player::play(const Track &t) { playbackCoordinator_.play(t); }
 
@@ -54,8 +61,7 @@ void Player::previous() { playbackCoordinator_.previous(); }
 void Player::seek(float seconds) { playbackCoordinator_.seek(seconds); }
 void Player::setVolume(float v) { playbackCoordinator_.setVolume(v); }
 
-// ── queue management
-// ──────────────────────────────────────────────────────────
+// ── queue management ──────────────────────────────────────────────────────────
 
 void Player::queueNext(const Track &t) { playbackCoordinator_.queueNext(t); }
 void Player::queueLast(const Track &t) { playbackCoordinator_.queueLast(t); }
@@ -69,8 +75,7 @@ std::vector<const Track *> Player::queueTracks() const {
   return playbackCoordinator_.queueTracks();
 }
 
-// ── playlist management
-// ───────────────────────────────────────────────────────
+// ── playlist management ───────────────────────────────────────────────────────
 
 void Player::addPlaylist(Playlist p) {
   playlistStore_.addPlaylist(std::move(p));
@@ -112,8 +117,7 @@ const std::vector<Playlist> &Player::playlists() const {
   return playlistStore_.playlists();
 }
 
-// ── persistence
-// ───────────────────────────────────────────────────────────────
+// ── persistence ───────────────────────────────────────────────────────────────
 
 void Player::loadState() {
   SessionPersistence::loadSession(playbackCoordinator_, playlistStore_,
@@ -131,13 +135,87 @@ void Player::saveState() {
                                   recommendationCoordinator_);
 }
 
-// ── event loop
-// ────────────────────────────────────────────────────────────────
+// ── event loop ────────────────────────────────────────────────────────────────
 
-void Player::update() { playbackCoordinator_.update(); }
+void Player::update() {
+  using clock = std::chrono::steady_clock;
+  constexpr int  kMaxRetries = 10;
+  constexpr auto kRetryDelay = std::chrono::milliseconds(500);
 
-// ── read state
-// ────────────────────────────────────────────────────────────────
+  playbackCoordinator_.update();
+
+  // ── Drain new file-watcher events ────────────────────────────────────────
+
+  fileWatcher_.poll(
+      [this, &kRetryDelay](const fs::path& path) {
+        // Try immediately; if the file is still being written TagLib fails —
+        // park it for a retry rather than silently dropping it.
+        MusicDirectory dir;
+        dir.loadMetadata(path, lib_);
+        if (lib_.findByPath(path)) {
+          std::cout << "[FileWatcher] added: " << path << "\n";
+          if (onLibraryChanged) onLibraryChanged();
+        } else {
+          std::cout << "[FileWatcher] add deferred (file not ready): " << path << "\n";
+          pendingAdds_.push_back({ path,
+                                   std::chrono::steady_clock::now() + kRetryDelay,
+                                   0 });
+        }
+      },
+
+      [this](const fs::path& path) {
+        const Track* nowPlaying = playbackCoordinator_.currentTrack();
+        if (nowPlaying &&
+            nowPlaying->getMusicPath().lexically_normal() ==
+                path.lexically_normal()) {
+          std::cout << "[FileWatcher] currently-playing track deleted, stopping: "
+                    << path << "\n";
+          playbackCoordinator_.stop();
+          playbackCoordinator_.clearQueue();
+        }
+        if (lib_.removeTrack(path)) {
+          std::cout << "[FileWatcher] removed: " << path << "\n";
+          if (onLibraryChanged) onLibraryChanged();
+        }
+      }
+  );
+
+  // ── Retry deferred additions ──────────────────────────────────────────────
+
+  auto now = clock::now();
+  int  n   = static_cast<int>(pendingAdds_.size());
+  for (int i = 0; i < n; ++i) {
+    auto& front = pendingAdds_.front();
+
+    if (now < front.retryAt) {
+      // Not due yet — rotate to the back.
+      pendingAdds_.push_back(std::move(front));
+      pendingAdds_.pop_front();
+      continue;
+    }
+
+    fs::path path    = front.path;
+    int      attempt = front.attempt + 1;
+    pendingAdds_.pop_front();
+
+    MusicDirectory dir;
+    dir.loadMetadata(path, lib_);
+    if (lib_.findByPath(path)) {
+      std::cout << "[FileWatcher] added (retry " << attempt << "): " << path << "\n";
+      if (onLibraryChanged) onLibraryChanged();
+    } else if (attempt < kMaxRetries) {
+      std::cout << "[FileWatcher] still not ready, retry "
+                << attempt << "/" << kMaxRetries << ": " << path << "\n";
+      pendingAdds_.push_back({ path, clock::now() + kRetryDelay, attempt });
+    } else {
+      std::cerr << "[FileWatcher] gave up after " << kMaxRetries
+                << " attempts: " << path << "\n";
+    }
+  }
+}
+
+
+// ── read state ────────────────────────────────────────────────────────────────
 
 const Track *Player::currentTrack() const {
   return playbackCoordinator_.currentTrack();

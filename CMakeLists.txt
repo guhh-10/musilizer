@@ -89,6 +89,16 @@ set(KISSFFT_TEST OFF CACHE BOOL "" FORCE)
 set(KISSFFT_TESTS OFF CACHE BOOL "" FORCE)
 set(KISSFFT_TOOLS OFF CACHE BOOL "" FORCE)
 
+FetchContent_Declare(
+    efsw
+    GIT_REPOSITORY  https://github.com/SpartanJ/efsw.git
+    GIT_TAG         0708c5576a9b8e0edd1f841b1f574c06da3e4615
+    GIT_SHALLOW     TRUE
+)
+set(EFSW_STATIC ON CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_TEST_APP OFF CACHE BOOL "" FORCE)
+
 FetchContent_MakeAvailable(
     IconFontCppHeader
     tag
@@ -98,6 +108,7 @@ FetchContent_MakeAvailable(
     SDL3
     imgui
     kissfft
+    efsw
 )
 
 # TagLib include dirs
@@ -165,18 +176,21 @@ add_library(musilizer_core STATIC
     src/service/recommendation_coordinator.cpp
     src/service/genre_graph_learner.cpp
     src/service/fft_analyzer.cpp
+    src/service/file_watcher.cpp
 )
 
 target_include_directories(musilizer_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${miniaudio_SOURCE_DIR}
     ${TAGLIB_INCLUDE_DIRS}
+    ${efsw_SOURCE_DIR}/include
 )
 
 target_link_libraries(musilizer_core PUBLIC
     tag
     nlohmann_json::nlohmann_json
     kissfft::kissfft
+    efsw-static
 )
 
 musilizer_set_warnings(musilizer_core)

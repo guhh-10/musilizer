@@ -14,6 +14,10 @@ MainWindow::MainWindow(Player& player, SearchController& search)
     , waveformPanel_(player)
 {}
 
+void MainWindow::notifyLibraryChanged() {
+    libraryPanel_.refresh();
+}
+
 void MainWindow::draw()
 {
     ImGuiIO& io = ImGui::GetIO();

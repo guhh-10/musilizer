@@ -1,4 +1,6 @@
 #pragma once
+#include <chrono>
+#include <deque>
 #include <functional>
 #include <vector>
 
@@ -8,6 +10,7 @@
 #include "model/playlist.hpp"
 #include "model/playlist_store.hpp"
 #include "model/track.hpp"
+#include "service/file_watcher.hpp"
 #include "service/recommendation_coordinator.hpp"
 
 
@@ -21,11 +24,21 @@ public:
   std::function<void()> onRecommendationsReady;
   std::function<void()> onPlaylistsChanged;
 
+  std::function<void()> onLibraryChanged;
+
 private:
   Library &lib_;
   PlaylistStore playlistStore_;
   RecommendationCoordinator recommendationCoordinator_;
   PlaybackCoordinator playbackCoordinator_;
+  FileWatcher fileWatcher_;
+
+  struct PendingAdd {
+    fs::path                              path;
+    std::chrono::steady_clock::time_point retryAt;
+    int                                   attempt = 0;
+  };
+  std::deque<PendingAdd> pendingAdds_;
 
 public:
   explicit Player(Library &lib);
@@ -63,11 +76,12 @@ public:
   void moveTrackInPlaylist(const std::string &playlistName, int from, int to);
   void playPlaylistStartingAt(const Playlist &p, int startIndex);
 
-  // Persistence (forward to SessionPersistence)
+  void startWatching();
+
   void saveState();
   void loadState();
 
-  // Tick
+  // Tick — call every frame; advances playback state and drains file events
   void update();
 
   // Read state (forward to PlaybackCoordinator)

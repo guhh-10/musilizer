@@ -14,3 +14,10 @@ void Library::addTrack(Track t) {
     fs::path key = t.getMusicPath().lexically_normal();
     tracks.emplace(key, std::move(t));
 }
+
+bool Library::removeTrack(const fs::path& path) {
+    auto it = tracks.find(path.lexically_normal());
+    if (it == tracks.end()) return false;
+    tracks.erase(it);
+    return true;
+}

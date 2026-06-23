@@ -41,6 +41,10 @@ void LibraryPanel::setArtistFilter(const std::string& artist) {
     runSearch();
 }
 
+void LibraryPanel::refresh() {
+    runSearch();
+}
+
 // ── Column header helper ──────────────────────────────────────────────────────
 
 // Draws a clickable, hover-animated column header cell.

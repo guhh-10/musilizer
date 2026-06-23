@@ -11,6 +11,8 @@ class MainWindow {
     public:
         MainWindow(Player& player, SearchController& search);
         void draw();
+        // Called when the file watcher changes the library so the UI re-queries.
+        void notifyLibraryChanged();
 
     private:
         Player&           player_;

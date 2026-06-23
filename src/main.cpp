@@ -29,6 +29,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
     Player player(lib);
     SearchController search(lib);
+    player.startWatching();
 
     // ── SDL3 init ─────────────────────────────────────────────────────────────
     // SDL_INIT_AUDIO is intentionally omitted — miniaudio owns the audio device.
@@ -76,6 +77,11 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
     MainWindow ui(player, search);
     player.loadState();
+
+    player.onLibraryChanged = [&search, &ui]() {
+        search.rebuild();
+        ui.notifyLibraryChanged();
+    };
 
     // ── Main loop ─────────────────────────────────────────────────────────────
 

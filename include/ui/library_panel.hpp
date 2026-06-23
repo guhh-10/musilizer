@@ -24,6 +24,9 @@ class LibraryPanel {
         // Triggers an immediate requery.
         void setArtistFilter(const std::string& artist);
 
+        // Re-run the current search query (e.g. after a file-watcher library change).
+        void refresh();
+
     private:
         Player&           player_;
         SearchController& search_;
